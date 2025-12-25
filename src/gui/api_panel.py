@@ -1,10 +1,11 @@
 """
-API設定パネル
+API設定ダイアログ
 6つのAPI設定を管理するGUIコンポーネント
 """
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QDialog,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -17,10 +18,11 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QFormLayout,
     QMessageBox,
+    QDialogButtonBox,
 )
 
-from models.api_config import ApiConfig, ApiConfigManager, HttpMethod
-from logger import logger
+from src.models.api_config import ApiConfig, ApiConfigManager, HttpMethod
+from src.logger import logger
 
 
 class ApiConfigWidget(QWidget):
@@ -80,11 +82,6 @@ class ApiConfigWidget(QWidget):
         timeout_layout.addStretch()
         form_layout.addRow("タイムアウト:", timeout_layout)
 
-        # テストボタン
-        self.test_button = QPushButton("テスト")
-        self.test_button.clicked.connect(self.test_api)
-        form_layout.addRow("", self.test_button)
-
         group_layout.addLayout(form_layout)
         layout.addWidget(group_box)
 
@@ -125,80 +122,69 @@ class ApiConfigWidget(QWidget):
         if hasattr(self, 'flatten_checkbox'):
             self.flatten_checkbox.setChecked(config.flatten_response)
 
-    def test_api(self):
-        """APIテストを実行します"""
-        config = self.get_config()
-        errors = config.validate()
-
-        if errors:
-            QMessageBox.warning(
-                self,
-                "設定エラー",
-                f"API {self.index + 1} の設定にエラーがあります:\n\n" + "\n".join(errors),
-            )
-        else:
-            QMessageBox.information(
-                self,
-                "テスト",
-                f"API {self.index + 1} の設定は有効です。\n\n"
-                f"名前: {config.name}\n"
-                f"URL: {config.url}\n"
-                f"メソッド: {config.method.value}",
-            )
 
 
-class ApiPanel(QWidget):
-    """API設定パネル（6つのAPI設定を管理）"""
+class ApiDialog(QDialog):
+    """API設定ダイアログ（3つのAPI設定を管理）"""
 
     configs_changed = Signal()  # 設定変更時に発火
 
-    def __init__(self, parent=None):
+    def __init__(self, config_manager=None, parent=None):
         super().__init__(parent)
         
-        # デフォルトのAPI設定を作成（ローカルモックサーバーを指す）
-        default_configs = [
-            ApiConfig(
-                enabled=True,
-                name="Type A API (Local Mock)",
-                url="http://localhost:8001/applications/type-a",
-                method=HttpMethod.GET,
-                timeout=30,
-                response_path="applications",  # applications配列を抽出
-                flatten_response=True,  # ネストされたレスポンスを平坦化
-            ),
-            ApiConfig(
-                enabled=True,
-                name="Type B API (Local Mock)",
-                url="http://localhost:8001/applications/type-b",
-                method=HttpMethod.GET,
-                timeout=30,
-                response_path="applications",  # applications配列を抽出
-                flatten_response=True,  # ネストされたレスポンスを平坦化
-            ),
-            ApiConfig(
-                enabled=True,
-                name="Type C API (Local Mock)",
-                url="http://localhost:8001/applications/type-c",
-                method=HttpMethod.GET,
-                timeout=30,
-                response_path="applications",  # applications配列を抽出（エラーの場合は空）
-                flatten_response=True,  # ネストされたレスポンスを平坦化
-            ),
-        ]
+        # 設定マネージャーの初期化
+        if config_manager is None:
+            # デフォルトのAPI設定を作成（ローカルモックサーバーを指す）
+            default_configs = [
+                ApiConfig(
+                    enabled=True,
+                    name="Type A API (Local Mock)",
+                    url="http://localhost:8001/applications/type-a",
+                    method=HttpMethod.GET,
+                    timeout=30,
+                    response_path="applications",  # applications配列を抽出
+                    flatten_response=True,  # ネストされたレスポンスを平坦化
+                ),
+                ApiConfig(
+                    enabled=True,
+                    name="Type B API (Local Mock)",
+                    url="http://localhost:8001/applications/type-b",
+                    method=HttpMethod.GET,
+                    timeout=30,
+                    response_path="applications",  # applications配列を抽出
+                    flatten_response=True,  # ネストされたレスポンスを平坦化
+                ),
+                ApiConfig(
+                    enabled=True,
+                    name="Type C API (Local Mock)",
+                    url="http://localhost:8001/applications/type-c",
+                    method=HttpMethod.GET,
+                    timeout=30,
+                    response_path="applications",  # applications配列を抽出（エラーの場合は空）
+                    flatten_response=True,  # ネストされたレスポンスを平坦化
+                ),
+            ]
+            self.config_manager = ApiConfigManager(max_apis=3, default_configs=default_configs)
+        else:
+            self.config_manager = config_manager
         
-        self.config_manager = ApiConfigManager(max_apis=3, default_configs=default_configs)
         self.setup_ui()
-        logger.info("API設定パネルを初期化しました")
+        logger.info("API設定ダイアログを初期化しました")
 
     def setup_ui(self):
         """UIを設定します"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
+
+        # ダイアログの基本設定
+        self.setWindowTitle("API設定")
+        self.setMinimumSize(600, 700)
 
         # タイトル
         title_label = QLabel("API設定")
-        title_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        title_label.setStyleSheet("font-weight: bold; font-size: 16px;")
+        title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
         # スクロールエリア
@@ -235,11 +221,15 @@ class ApiPanel(QWidget):
         self.load_button.clicked.connect(self.load_configs)
         control_layout.addWidget(self.load_button)
 
-        self.test_all_button = QPushButton("すべてテスト")
-        self.test_all_button.clicked.connect(self.test_all_apis)
-        control_layout.addWidget(self.test_all_button)
-
         layout.addLayout(control_layout)
+
+        # ダイアログボタン（OK/Cancel）
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
         
         # デフォルト設定をウィジェットに反映
         for i, widget in enumerate(self.api_widgets):
@@ -283,24 +273,11 @@ class ApiPanel(QWidget):
             "設定読み込み機能は現在利用できません。",
         )
 
-    def test_all_apis(self):
-        """すべてのAPIをテストします"""
-        errors = self.config_manager.validate_all()
 
-        if errors:
-            error_messages = []
-            for index, error_list in errors.items():
-                error_messages.append(f"API {index + 1}: {', '.join(error_list)}")
-
-            QMessageBox.warning(
-                self,
-                "テスト結果",
-                "以下のAPIにエラーがあります:\n\n" + "\n".join(error_messages),
-            )
-        else:
-            enabled_count = len(self.config_manager.get_enabled_configs())
-            QMessageBox.information(
-                self,
-                "テスト結果",
-                f"すべてのAPI設定が有効です。\n\n有効なAPI: {enabled_count}/3",
-            )
+    def accept(self):
+        """OKボタンが押された時の処理"""
+        # 設定を更新
+        for i, widget in enumerate(self.api_widgets):
+            self.config_manager.set_config(i, widget.get_config())
+        self.configs_changed.emit()
+        super().accept()
