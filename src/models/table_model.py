@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex, QSortFilterProxyModel
 from PySide6.QtGui import QColor
 
-from logger import logger
+from src.logger import logger
 
 
 class ApiResultTableModel(QAbstractTableModel):
