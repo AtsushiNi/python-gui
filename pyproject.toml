@@ -10,6 +10,8 @@ requires-python = ">=3.11"
 dependencies = [
     "PySide6>=6.10.0",
     "requests>=2.32.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
 ]
 
 [project.scripts]
@@ -18,9 +20,6 @@ api-table-viewer = "src.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.uv]
-lockfile = "uv.lock"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
