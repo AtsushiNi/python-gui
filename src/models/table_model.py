@@ -107,12 +107,12 @@ class ApiResultTableModel(QAbstractTableModel):
 
         if column_key == "status":
             if success:
-                return QColor(220, 255, 220)  # 薄い緑
+                return QColor(40, 80, 40)    # 濃い緑
             else:
-                return QColor(255, 220, 220)  # 薄い赤
+                return QColor(80, 40, 40)    # 濃い赤
 
         if not success:
-            return QColor(255, 240, 240)  # エラー行は薄い赤背景
+            return QColor(60, 40, 40)        # エラー行全体用の濃い赤背景
 
         return None
 
@@ -121,7 +121,7 @@ class ApiResultTableModel(QAbstractTableModel):
         success = result.get("success", False)
 
         if not success and column_key == "error":
-            return QColor(200, 0, 0)  # エラーメッセージは赤
+            return QColor(255, 150, 150)  # 明るい赤
 
         return None
 

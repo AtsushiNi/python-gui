@@ -82,6 +82,38 @@ class ApiConfigWidget(QWidget):
         timeout_layout.addStretch()
         form_layout.addRow("タイムアウト:", timeout_layout)
 
+        # レスポンスパス
+        self.response_path_edit = QLineEdit()
+        self.response_path_edit.setPlaceholderText("例: data.results")
+        self.response_path_edit.textChanged.connect(self.on_config_changed)
+        form_layout.addRow("レスポンスパス:", self.response_path_edit)
+
+        # 平坦化チェックボックス
+        self.flatten_checkbox = QCheckBox("レスポンスを平坦化")
+        self.flatten_checkbox.setChecked(False)
+        self.flatten_checkbox.stateChanged.connect(self.on_config_changed)
+        form_layout.addRow("", self.flatten_checkbox)
+
+        # フィルタリングパラメータセクション
+        filter_group = QGroupBox("フィルタリングパラメータ")
+        filter_layout = QFormLayout()
+        filter_layout.setLabelAlignment(Qt.AlignRight)
+
+        # ステータスフィルター
+        self.status_filter_edit = QLineEdit()
+        self.status_filter_edit.setPlaceholderText("例: APPROVED, PENDING")
+        self.status_filter_edit.textChanged.connect(self.on_config_changed)
+        filter_layout.addRow("ステータス:", self.status_filter_edit)
+
+        # その他のフィルターパラメータ
+        self.other_filters_edit = QLineEdit()
+        self.other_filters_edit.setPlaceholderText("例: min_amount=1000&max_amount=5000")
+        self.other_filters_edit.textChanged.connect(self.on_config_changed)
+        filter_layout.addRow("その他:", self.other_filters_edit)
+
+        filter_group.setLayout(filter_layout)
+        group_layout.addWidget(filter_group)
+
         group_layout.addLayout(form_layout)
         layout.addWidget(group_box)
 
@@ -96,6 +128,23 @@ class ApiConfigWidget(QWidget):
         except ValueError:
             timeout = 30
 
+        # フィルタリングパラメータをparamsに追加
+        params = {}
+        
+        # ステータスフィルター
+        status_filter = self.status_filter_edit.text().strip()
+        if status_filter:
+            params["status"] = status_filter
+        
+        # その他のフィルターパラメータを解析
+        other_filters = self.other_filters_edit.text().strip()
+        if other_filters:
+            # "key1=value1&key2=value2" 形式を解析
+            for param in other_filters.split("&"):
+                if "=" in param:
+                    key, value = param.split("=", 1)
+                    params[key.strip()] = value.strip()
+        
         return ApiConfig(
             enabled=self.enabled_checkbox.isChecked(),
             name=self.name_edit.text(),
@@ -104,6 +153,7 @@ class ApiConfigWidget(QWidget):
             timeout=timeout,
             response_path=self.response_path_edit.text() if hasattr(self, 'response_path_edit') else None,
             flatten_response=self.flatten_checkbox.isChecked() if hasattr(self, 'flatten_checkbox') else False,
+            params=params,
         )
 
     def set_config(self, config: ApiConfig):
@@ -121,6 +171,19 @@ class ApiConfigWidget(QWidget):
         # flatten_responseの設定
         if hasattr(self, 'flatten_checkbox'):
             self.flatten_checkbox.setChecked(config.flatten_response)
+        
+        # フィルタリングパラメータの設定
+        if hasattr(self, 'status_filter_edit'):
+            # statusパラメータを抽出
+            status_value = config.params.get("status", "")
+            self.status_filter_edit.setText(status_value)
+            
+            # その他のパラメータを抽出（status以外）
+            other_params = []
+            for key, value in config.params.items():
+                if key != "status":
+                    other_params.append(f"{key}={value}")
+            self.other_filters_edit.setText("&".join(other_params))
 
 
 
