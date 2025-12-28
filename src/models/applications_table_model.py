@@ -156,26 +156,26 @@ class ApplicationsTableModel(QAbstractTableModel):
 
     def _get_background_color(self, application: Dict[str, Any], column_key: str) -> Optional[QColor]:
         """背景色を取得します"""
-        api_type = application.get("api_type", "")
+        api_type = application.get()
         
         # APIタイプごとに色分け
         if column_key == "api_type":
             if api_type == "A":
-                return QColor(220, 240, 255)  # 薄い青
+                return QColor(40, 60, 80)    # 濃い青
             elif api_type == "B":
-                return QColor(220, 255, 220)  # 薄い緑
+                return QColor(40, 80, 40)    # 濃い緑
             elif api_type == "C":
-                return QColor(255, 220, 220)  # 薄い赤
+                return QColor(80, 40, 40)    # 濃い赤
         
         # ステータスごとに色分け
         if column_key == "status":
             status = application.get("status", "")
             if status == "APPROVED":
-                return QColor(220, 255, 220)  # 薄い緑
+                return QColor(40, 80, 40)    # 濃い緑
             elif status == "REJECTED":
-                return QColor(255, 220, 220)  # 薄い赤
+                return QColor(80, 40, 40)    # 濃い赤
             elif status == "SUBMITTED":
-                return QColor(255, 255, 200)  # 薄い黄
+                return QColor(80, 80, 40)    # 濃い黄緑
         
         return None
 
