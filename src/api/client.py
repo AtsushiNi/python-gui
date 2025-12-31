@@ -14,6 +14,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.api_config import ApiConfig
+from .flexible_types import get_api_handler, find_api_definition
 from logger import logger
 
 
@@ -49,11 +50,20 @@ class ApiClient:
         try:
             logger.info(f"API実行開始: {config.name} ({config.url})")
 
+            # API定義からデフォルトパラメータを取得
+            params = config.params.copy()
+            default_params = config.get_default_params()
+            params.update(default_params)
+            
+            # フィルターパラメータを追加
+            if config.filter_params:
+                params.update(config.filter_params)
+
             # リクエストパラメータの準備
             request_kwargs = {
                 "timeout": config.timeout,
                 "headers": config.headers,
-                "params": config.params,
+                "params": params,
             }
 
             # ボディの処理
@@ -90,6 +100,8 @@ class ApiClient:
                 "data": response_data,
                 "headers": dict(response.headers),
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "api_category": config.api_category.value if config.api_category else None,
+                "api_definition_name": config.api_definition_name,
             }
 
             if not response.ok:
@@ -269,8 +281,16 @@ class ApiExecutor:
             if not result.get("success", False):
                 # エラーの場合はエラー情報をapplicationsとして追加
                 api_result = result.get("data", {})
+                url = api_result.get("url", "")
+                api_type = "unknown"
+                
+                # URLからAPI定義を取得してカテゴリーを抽出
+                definition = find_api_definition(url)
+                if definition:
+                    api_type = definition.category.value
+                
                 error_data = {
-                    "api_type": self._extract_api_type_from_url(api_result.get("url", "")),
+                    "api_type": api_type,
                     "id": f"ERROR-{len(applications)+1:03d}",
                     "title": "API実行エラー",
                     "status": "ERROR",
@@ -285,48 +305,14 @@ class ApiExecutor:
             api_result = result.get("data", {})
             response_data = api_result.get("data", {})
             
-            if isinstance(response_data, dict) and "applications" in response_data:
-                apps_list = response_data.get("applications", [])
-                response_type = response_data.get("type")
-            else:
-                apps_list = response_data if isinstance(response_data, list) else []
-                response_type = None
+            # 柔軟なAPIハンドラーを使用
+            url = api_result.get("url", "")
+            try:
+                handler = get_api_handler(url)
+                apps_list = handler.get_applications(response_data)
+            except Exception as e:
+                logger.warning(f"APIハンドラー処理エラー: {e}")
             
-            if not isinstance(apps_list, list):
-                apps_list = [apps_list] if apps_list else []
-            
-            for app in apps_list:
-                if isinstance(app, dict):
-                    # APIタイプを設定（レスポンスのtypeフィールドを優先、なければURLから推測）
-                    api_type = app.get("type")
-                    if not api_type and response_type:
-                        api_type = response_type
-                    if not api_type:
-                        api_type = self._extract_api_type_from_url(api_result.get("url", ""))
-                    
-                    # api_typeフィールドを追加（applications_table_model.pyが期待するフィールド名）
-                    app["api_type"] = api_type
-                    
-                    # 元のtypeフィールドも保持（必要に応じて）
-                    if "type" not in app:
-                        app["type"] = api_type
-                    
-                    applications.append(app)
+            applications.extend(apps_list)
         
         return applications
-    
-    def _extract_api_type_from_url(self, url: str) -> str:
-        """URLからAPIタイプを抽出します"""
-        if "type-a" in url:
-            return "A"
-        elif "type-b" in url:
-            return "B"
-        elif "type-c" in url:
-            return "C"
-        else:
-            # URLからタイプを推測
-            import re
-            match = re.search(r'type-([abc])', url.lower())
-            if match:
-                return match.group(1).upper()
-            return "Unknown"

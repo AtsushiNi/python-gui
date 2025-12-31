@@ -156,7 +156,7 @@ class ApplicationsTableModel(QAbstractTableModel):
 
     def _get_background_color(self, application: Dict[str, Any], column_key: str) -> Optional[QColor]:
         """背景色を取得します"""
-        api_type = application.get()
+        api_type = application.get("api_type", "")
         
         # APIタイプごとに色分け
         if column_key == "api_type":

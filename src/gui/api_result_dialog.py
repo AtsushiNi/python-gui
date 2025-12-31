@@ -99,11 +99,6 @@ class ApiResultDialog(QDialog):
 
         layout.addStretch()
 
-        # エクスポートボタン（将来の機能拡張用）
-        self.export_button = QPushButton("エクスポート")
-        self.export_button.clicked.connect(self.export_results)
-        layout.addWidget(self.export_button)
-
         return panel
 
     def create_table_view(self) -> QTableView:
@@ -236,15 +231,6 @@ class ApiResultDialog(QDialog):
             lines.append(f"  {error}")
 
         return "\n".join(lines)
-
-    def export_results(self):
-        """結果をエクスポートします（将来の機能拡張用）"""
-        QMessageBox.information(
-            self,
-            "情報",
-            "エクスポート機能は現在開発中です。",
-            QMessageBox.Ok
-        )
 
     def update_status(self):
         """ステータスを更新します"""

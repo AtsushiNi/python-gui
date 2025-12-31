@@ -5,6 +5,7 @@ API設定データモデル
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from src.api.flexible_types import ApiCategory, find_api_definition, get_api_handler
 
 
 class HttpMethod(Enum):
@@ -26,6 +27,8 @@ class ApiConfig:
     name: str = "API"
     url: str = ""
     method: HttpMethod = HttpMethod.GET
+    api_category: Optional[ApiCategory] = None  # APIカテゴリー
+    api_definition_name: Optional[str] = None  # API定義名
 
     # リクエスト設定
     headers: Dict[str, str] = field(default_factory=dict)
@@ -36,6 +39,17 @@ class ApiConfig:
     # レスポンス処理
     response_path: Optional[str] = None  # JSONパス（例: "data.results"）
     flatten_response: bool = False  # ネストされたレスポンスを平坦化するか
+
+    # フィルターパラメータ（APIタイプ固有）
+    filter_params: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        """初期化後の処理：URLからAPI定義を推測"""
+        if (self.api_category is None or self.api_definition_name is None) and self.url:
+            definition = find_api_definition(self.url)
+            if definition:
+                self.api_category = definition.category
+                self.api_definition_name = definition.name
 
     def validate(self) -> List[str]:
         """設定の検証を行い、エラーメッセージのリストを返します"""
@@ -52,7 +66,23 @@ class ApiConfig:
         if self.timeout <= 0:
             errors.append("タイムアウトは正の数である必要があります")
 
+        # API定義固有のパラメータ検証
+        if self.url and self.filter_params:
+            definition = find_api_definition(self.url)
+            if definition:
+                param_errors = definition.validate_params(**self.filter_params)
+                errors.extend(param_errors)
+
         return errors
+    
+    def get_default_params(self) -> Dict[str, Any]:
+        """デフォルトのパラメータを取得します"""
+        if not self.url:
+            return {}
+        definition = find_api_definition(self.url)
+        if definition:
+            return definition.default_params
+        return {}
 
 
 class ApiConfigManager:
