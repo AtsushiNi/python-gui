@@ -84,7 +84,7 @@ api-table-viewer/
 │   │   └── flexible_types.py   # 柔軟なAPIタイプシステム
 │   ├── gui/
 │   │   ├── main_window.py      # メインウィンドウ
-│   │   ├── api_dialog.py       # API設定ダイアログ
+│   │   ├── api_config_dialog.py       # API設定ダイアログ
 │   │   ├── result_panel.py     # 結果表示パネル
 │   │   └── api_result_dialog.py # API実行結果ダイアログ
 │   └── mock_server/

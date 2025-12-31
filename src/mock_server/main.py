@@ -7,7 +7,7 @@ import json
 import random
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -108,14 +108,14 @@ async def root():
         "message": "API Table Mock Server",
         "version": "1.0.0",
         "endpoints": {
-            "/applications/type-a": "タイプAの申請データ（フィルター: status, min_amount, max_amount, category）",
-            "/applications/type-b": "タイプBの申請データ（フィルター: status, start_date_from, start_date_to, min_days, max_days）", 
-            "/applications/type-c": "タイプCの申請データ（フィルター: status, role, approval_status）",
-            "/applications/all": "すべてのタイプの申請データ（フィルター: status, applicant_name, created_from, created_to）",
+            "/applications/type-a": "タイプAの申請データ（POST、フィルター: status, min_amount, max_amount, category）",
+            "/applications/type-b": "タイプBの申請データ（POST、フィルター: status, start_date_from, start_date_to, min_days, max_days）", 
+            "/applications/type-c": "タイプCの申請データ（POST、フィルター: status, role, approval_status）",
+            "/applications/all": "すべてのタイプの申請データ（POST、フィルター: status, applicant_name, created_from, created_to）",
             "/health": "ヘルスチェック",
             "/docs": "APIドキュメント (Swagger UI)"
         },
-        "filtering_note": "各エンドポイントはクエリパラメータでフィルタリング可能です。詳細は /docs を参照してください。"
+        "filtering_note": "各エンドポイントはPOSTメソッドで、フィルタリングパラメータはリクエストボディで指定します。詳細は /docs を参照してください。"
     }
 
 @app.get("/health")
@@ -123,16 +123,16 @@ async def health_check():
     """ヘルスチェックエンドポイント"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
-@app.get("/applications/type-a")
-async def get_type_a_applications(
-    count: int = 5,
-    status: str = None,
-    min_amount: int = None,
-    max_amount: int = None,
-    category: str = None
+@app.post("/applications/type-a")
+async def post_type_a_applications(
+    count: int = Body(5, embed=True),
+    status: str = Body(None, embed=True),
+    min_amount: int = Body(None, embed=True),
+    max_amount: int = Body(None, embed=True),
+    category: str = Body(None, embed=True)
 ):
     """
-    タイプA（経費申請）のアプリケーションデータを返す
+    タイプA（経費申請）のアプリケーションデータを返す（POST）
     
     Args:
         count: 返すアプリケーション数（デフォルト: 5）
@@ -166,17 +166,17 @@ async def get_type_a_applications(
         "applications": filtered_applications
     }
 
-@app.get("/applications/type-b")
-async def get_type_b_applications(
-    count: int = 5,
-    status: str = None,
-    start_date_from: str = None,
-    start_date_to: str = None,
-    min_days: int = None,
-    max_days: int = None
+@app.post("/applications/type-b")
+async def post_type_b_applications(
+    count: int = Body(5, embed=True),
+    status: str = Body(None, embed=True),
+    start_date_from: str = Body(None, embed=True),
+    start_date_to: str = Body(None, embed=True),
+    min_days: int = Body(None, embed=True),
+    max_days: int = Body(None, embed=True)
 ):
     """
-    タイプB（休暇申請）のアプリケーションデータを返す
+    タイプB（休暇申請）のアプリケーションデータを返す（POST）
     
     Args:
         count: 返すアプリケーション数（デフォルト: 5）
@@ -220,15 +220,15 @@ async def get_type_b_applications(
         "applications": filtered_applications
     }
 
-@app.get("/applications/type-c")
-async def get_type_c_applications(
-    count: int = 5,
-    status: str = None,
-    role: str = None,
-    approval_status: str = None
+@app.post("/applications/type-c")
+async def post_type_c_applications(
+    count: int = Body(5, embed=True),
+    status: str = Body(None, embed=True),
+    role: str = Body(None, embed=True),
+    approval_status: str = Body(None, embed=True)
 ):
     """
-    タイプC（権限申請）のアプリケーションデータを返す
+    タイプC（権限申請）のアプリケーションデータを返す（POST）
     
     Args:
         count: 返すアプリケーション数（デフォルト: 5）
@@ -265,16 +265,16 @@ async def get_type_c_applications(
         "applications": filtered_applications
     }
 
-@app.get("/applications/all")
-async def get_all_applications(
-    count_per_type: int = 3,
-    status: str = None,
-    applicant_name: str = None,
-    created_from: str = None,
-    created_to: str = None
+@app.post("/applications/all")
+async def post_all_applications(
+    count_per_type: int = Body(3, embed=True),
+    status: str = Body(None, embed=True),
+    applicant_name: str = Body(None, embed=True),
+    created_from: str = Body(None, embed=True),
+    created_to: str = Body(None, embed=True)
 ):
     """
-    すべてのタイプのアプリケーションデータを返す
+    すべてのタイプのアプリケーションデータを返す（POST）
     
     Args:
         count_per_type: タイプごとのアプリケーション数（デフォルト: 3）

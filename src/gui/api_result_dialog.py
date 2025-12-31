@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
 )
 
-from src.models.table_model import ApiResultTableModel, SortFilterProxyModel
+from models.api_result_table_model import ApiResultTableModel, SortFilterProxyModel
 from src.logger import logger
 
 

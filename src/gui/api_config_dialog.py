@@ -91,12 +91,6 @@ class ApiConfigWidget(QWidget):
         self.response_path_edit.textChanged.connect(self.on_config_changed)
         form_layout.addRow("レスポンスパス:", self.response_path_edit)
 
-        # 平坦化チェックボックス
-        self.flatten_checkbox = QCheckBox("レスポンスを平坦化")
-        self.flatten_checkbox.setChecked(False)
-        self.flatten_checkbox.stateChanged.connect(self.on_config_changed)
-        form_layout.addRow("", self.flatten_checkbox)
-
         # API定義固有のフィルターパラメータセクション
         self.filter_stack = QStackedWidget()
         group_layout.addWidget(self.filter_stack)
@@ -298,7 +292,6 @@ class ApiConfigWidget(QWidget):
             method=HttpMethod(self.method_combo.currentText()),
             timeout=timeout,
             response_path=self.response_path_edit.text() if hasattr(self, 'response_path_edit') else None,
-            flatten_response=self.flatten_checkbox.isChecked() if hasattr(self, 'flatten_checkbox') else False,
             api_category=api_category,
             api_definition_name=api_definition_name,
             filter_params=filter_params,
@@ -315,10 +308,6 @@ class ApiConfigWidget(QWidget):
         # response_pathの設定
         if hasattr(self, 'response_path_edit'):
             self.response_path_edit.setText(config.response_path or "")
-        
-        # flatten_responseの設定
-        if hasattr(self, 'flatten_checkbox'):
-            self.flatten_checkbox.setChecked(config.flatten_response)
         
         # URLに基づいて適切なフィルターウィジェットを表示
         if config.url:
@@ -341,7 +330,7 @@ class ApiConfigWidget(QWidget):
 
 
 
-class ApiDialog(QDialog):
+class ApiConfigDialog(QDialog):
     """API設定ダイアログ（3つのAPI設定を管理）"""
 
     configs_changed = Signal()  # 設定変更時に発火
@@ -357,28 +346,25 @@ class ApiDialog(QDialog):
                     enabled=True,
                     name="Type A API (Local Mock)",
                     url="http://localhost:8001/applications/type-a",
-                    method=HttpMethod.GET,
+                    method=HttpMethod.POST,
                     timeout=30,
                     response_path="applications",  # applications配列を抽出
-                    flatten_response=True,  # ネストされたレスポンスを平坦化
                 ),
                 ApiConfig(
                     enabled=True,
                     name="Type B API (Local Mock)",
                     url="http://localhost:8001/applications/type-b",
-                    method=HttpMethod.GET,
+                    method=HttpMethod.POST,
                     timeout=30,
                     response_path="applications",  # applications配列を抽出
-                    flatten_response=True,  # ネストされたレスポンスを平坦化
                 ),
                 ApiConfig(
                     enabled=True,
                     name="Type C API (Local Mock)",
                     url="http://localhost:8001/applications/type-c",
-                    method=HttpMethod.GET,
+                    method=HttpMethod.POST,
                     timeout=30,
                     response_path="applications",  # applications配列を抽出（エラーの場合は空）
-                    flatten_response=True,  # ネストされたレスポンスを平坦化
                 ),
             ]
             self.config_manager = ApiConfigManager(max_apis=3, default_configs=default_configs)

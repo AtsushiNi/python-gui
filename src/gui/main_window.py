@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from src.gui.api_dialog import ApiDialog
+from src.gui.api_config_dialog import ApiConfigDialog
 from src.gui.api_result_dialog import ApiResultDialog
 from src.gui.result_panel import ResultPanel
 from src.api.client import ApiExecutor
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
 
     def open_settings_dialog(self) -> None:
         """設定ダイアログを開きます"""
-        dialog = ApiDialog(self.config_manager, self)
+        dialog = ApiConfigDialog(self.config_manager, self)
         dialog.configs_changed.connect(self.on_api_configs_changed)
         
         if dialog.exec():

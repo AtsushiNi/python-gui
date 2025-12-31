@@ -63,7 +63,6 @@ class ApiClient:
             request_kwargs = {
                 "timeout": config.timeout,
                 "headers": config.headers,
-                "params": params,
             }
 
             # ボディの処理
@@ -74,11 +73,22 @@ class ApiClient:
                         request_kwargs["headers"]["Content-Type"] = "application/json"
                 else:
                     request_kwargs["data"] = config.body
+            else:
+                request_kwargs["json"] = params
+                if "Content-Type" not in config.headers:
+                    request_kwargs["headers"]["Content-Type"] = "application/json"
+            
+            # POSTの場合、paramsがrequest_kwargsに含まれていないことを確認
+            if "params" in request_kwargs:
+                del request_kwargs["params"]
 
+            # デバッグ: リクエストパラメータをログに出力
+            logger.debug(f"リクエストパラメータ: method=POST, url={config.url}, kwargs={request_kwargs}")
+            
             # リクエスト実行
             start_time = time.time()
             response = self.session.request(
-                method=config.method.value,
+                method="POST",
                 url=config.url,
                 **request_kwargs
             )
@@ -93,7 +103,7 @@ class ApiClient:
             result = {
                 "api_name": config.name,
                 "url": config.url,
-                "method": config.method.value,
+                "method": "POST",
                 "status_code": response.status_code,
                 "response_time": elapsed_time,
                 "success": response.ok,
@@ -147,10 +157,6 @@ class ApiClient:
                 if config.response_path:
                     data = self._extract_by_path(data, config.response_path)
 
-                # 平坦化が必要な場合
-                if config.flatten_response and isinstance(data, list):
-                    data = self._flatten_responses(data)
-
                 return data
             except json.JSONDecodeError:
                 logger.warning(f"JSON解析エラー: {config.name}")
@@ -189,24 +195,6 @@ class ApiClient:
         except (KeyError, IndexError, TypeError, ValueError):
             logger.warning(f"パス抽出エラー: {path}")
             return None
-
-    def _flatten_responses(self, responses: List[Dict]) -> List[Dict]:
-        """
-        ネストされたレスポンスを平坦化します
-
-        Args:
-            responses: レスポンスリスト
-
-        Returns:
-            平坦化されたリスト
-        """
-        flattened = []
-        for item in responses:
-            if isinstance(item, dict):
-                flattened.append(item)
-            elif isinstance(item, list):
-                flattened.extend(self._flatten_responses(item))
-        return flattened
 
     def close(self):
         """セッションを閉じます"""

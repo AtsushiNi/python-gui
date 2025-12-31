@@ -26,7 +26,6 @@ class ApiConfig:
     enabled: bool = True
     name: str = "API"
     url: str = ""
-    method: HttpMethod = HttpMethod.GET
     api_category: Optional[ApiCategory] = None  # APIカテゴリー
     api_definition_name: Optional[str] = None  # API定義名
 
@@ -38,7 +37,6 @@ class ApiConfig:
 
     # レスポンス処理
     response_path: Optional[str] = None  # JSONパス（例: "data.results"）
-    flatten_response: bool = False  # ネストされたレスポンスを平坦化するか
 
     # フィルターパラメータ（APIタイプ固有）
     filter_params: Dict[str, Any] = field(default_factory=dict)
