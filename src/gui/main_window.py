@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from src.gui.api_panel import ApiDialog
+from src.gui.api_dialog import ApiDialog
 from src.gui.api_result_dialog import ApiResultDialog
 from src.gui.result_panel import ResultPanel
 from src.api.client import ApiExecutor
