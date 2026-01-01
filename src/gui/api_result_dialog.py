@@ -195,7 +195,6 @@ class ApiResultDialog(QDialog):
             f"API名: {data.get('api_name', 'N/A')}",
             f"ステータス: {'成功' if success else '失敗'}",
             f"URL: {data.get('url', 'N/A')}",
-            f"メソッド: {data.get('method', 'N/A')}",
             f"ステータスコード: {data.get('status_code', 'N/A')}",
             f"応答時間: {data.get('response_time', 0):.3f}秒",
             f"実行時刻: {result.get('timestamp', 'N/A')}",

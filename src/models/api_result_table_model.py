@@ -19,7 +19,6 @@ class ApiResultTableModel(QAbstractTableModel):
         ("status", "ステータス"),
         ("status_code", "ステータスコード"),
         ("response_time", "応答時間(秒)"),
-        ("method", "メソッド"),
         ("url", "URL"),
         ("timestamp", "実行時刻"),
         ("error", "エラー"),
@@ -78,8 +77,6 @@ class ApiResultTableModel(QAbstractTableModel):
         elif column_key == "response_time":
             time_val = result.get("data", {}).get("response_time", 0)
             return f"{time_val:.3f}"
-        elif column_key == "method":
-            return result.get("data", {}).get("method", "N/A")
         elif column_key == "url":
             url = result.get("data", {}).get("url", "N/A")
             # URLを短縮表示

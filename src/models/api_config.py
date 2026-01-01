@@ -3,51 +3,27 @@ API設定データモデル
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional
-from src.api.flexible_types import ApiCategory, find_api_definition, get_api_handler
-
-
-class HttpMethod(Enum):
-    """HTTPメソッドの列挙型"""
-    GET = "GET"
-    POST = "POST"
-    PUT = "PUT"
-    DELETE = "DELETE"
-    PATCH = "PATCH"
-    HEAD = "HEAD"
-
+from typing import Any, Dict, List, Optional, Callable
 
 @dataclass
 class ApiConfig:
-    """単一のAPI設定"""
+    """単一のAPI設定（設定と定義を統合）"""
 
     # 基本設定
     enabled: bool = True
     name: str = "API"
     url: str = ""
-    api_category: Optional[ApiCategory] = None  # APIカテゴリー
-    api_definition_name: Optional[str] = None  # API定義名
-
-    # リクエスト設定
-    headers: Dict[str, str] = field(default_factory=dict)
-    params: Dict[str, str] = field(default_factory=dict)
-    body: Optional[Any] = None
-    timeout: int = 30  # 秒
-
-    # レスポンス処理
-    response_path: Optional[str] = None  # JSONパス（例: "data.results"）
-
+    
+    # API定義情報（元々ApiDefinitionにあったフィールド）
+    description: str = ""
+    
+    # パラメータ定義
+    default_params: Dict[str, Any] = field(default_factory=dict)
+    supported_params: List[str] = field(default_factory=list)
+    param_validators: Dict[str, Callable[[Any], List[str]]] = field(default_factory=dict)
+    
     # フィルターパラメータ（APIタイプ固有）
     filter_params: Dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self):
-        """初期化後の処理：URLからAPI定義を推測"""
-        if (self.api_category is None or self.api_definition_name is None) and self.url:
-            definition = find_api_definition(self.url)
-            if definition:
-                self.api_category = definition.category
-                self.api_definition_name = definition.name
 
     def validate(self) -> List[str]:
         """設定の検証を行い、エラーメッセージのリストを返します"""
@@ -61,26 +37,23 @@ class ApiConfig:
         elif not self.url.startswith(("http://", "https://")):
             errors.append("URLは http:// または https:// で始まる必要があります")
 
-        if self.timeout <= 0:
-            errors.append("タイムアウトは正の数である必要があります")
-
-        # API定義固有のパラメータ検証
-        if self.url and self.filter_params:
-            definition = find_api_definition(self.url)
-            if definition:
-                param_errors = definition.validate_params(**self.filter_params)
-                errors.extend(param_errors)
-
         return errors
     
     def get_default_params(self) -> Dict[str, Any]:
         """デフォルトのパラメータを取得します"""
-        if not self.url:
-            return {}
-        definition = find_api_definition(self.url)
-        if definition:
-            return definition.default_params
-        return {}
+        return self.default_params.copy()
+    
+    def validate_params(self, **params) -> List[str]:
+        """パラメータを検証します（元ApiDefinitionのメソッド）"""
+        errors = []
+        
+        for key, value in params.items():
+            if key in self.param_validators:
+                validator = self.param_validators[key]
+                param_errors = validator(value)
+                errors.extend(param_errors)
+        
+        return errors
 
 
 class ApiConfigManager:

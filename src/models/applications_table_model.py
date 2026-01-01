@@ -104,44 +104,50 @@ class ApplicationsTableModel(QAbstractTableModel):
         """タイプ固有のデータを取得します"""
         api_type = application.get("api_type", "")
         
-        if api_type == "A":
-            if index == 1:
+        # カテゴリーが削除されたため、すべてのAPIタイプで同じ表示
+        if index == 1:
+            # 最初のタイプ固有フィールド
+            if api_type == "A":
                 amount = application.get("amount")
                 currency = application.get("currency", "JPY")
                 return f"{amount} {currency}" if amount is not None else "N/A"
-            elif index == 2:
-                return application.get("expenseCategory", "N/A")
-            elif index == 3:
-                return "経費申請"
-        
-        elif api_type == "B":
-            if index == 1:
+            elif api_type == "B":
                 start_date = application.get("startDate", "N/A")
                 end_date = application.get("endDate", "N/A")
                 if start_date == end_date:
                     return start_date
                 return f"{start_date}〜{end_date}"
-            elif index == 2:
+            elif api_type == "C":
+                return application.get("requestedRole", "N/A")
+            else:
+                return "N/A"
+        
+        elif index == 2:
+            # 2番目のタイプ固有フィールド
+            if api_type == "A":
+                return application.get("expenseCategory", "N/A")
+            elif api_type == "B":
                 days = application.get("days")
                 return f"{days}日" if days is not None else "N/A"
-            elif index == 3:
-                return "休暇申請"
-        
-        elif api_type == "C":
-            if index == 1:
-                # requestedRoleを表示
-                requested_role = application.get("requestedRole", "N/A")
-                return requested_role
-            elif index == 2:
-                # approvalFlowのステータスを表示
+            elif api_type == "C":
                 approval_flow = application.get("approvalFlow", [])
                 if isinstance(approval_flow, list) and len(approval_flow) > 0:
-                    # 保留中のステップ数を表示
                     pending_steps = [step for step in approval_flow if step.get("status") == "PENDING"]
                     return f"承認フロー: {len(pending_steps)}ステップ保留"
                 return "承認フロー: N/A"
-            elif index == 3:
+            else:
+                return "N/A"
+        
+        elif index == 3:
+            # 3番目のタイプ固有フィールド
+            if api_type == "A":
+                return "経費申請"
+            elif api_type == "B":
+                return "休暇申請"
+            elif api_type == "C":
                 return "権限申請"
+            else:
+                return "不明なタイプ"
         
         return ""
 

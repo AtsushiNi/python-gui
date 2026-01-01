@@ -70,15 +70,6 @@ class ResultPanel(QWidget):
         self.filter_edit.textChanged.connect(self.on_filter_changed)
         layout.addWidget(self.filter_edit)
         
-        # APIタイプフィルター
-        type_label = QLabel("APIタイプ:")
-        layout.addWidget(type_label)
-        
-        self.type_combo = QComboBox()
-        self.type_combo.addItems(["すべて", "Type A", "Type B", "Type C"])
-        self.type_combo.currentTextChanged.connect(self.on_type_filter_changed)
-        layout.addWidget(self.type_combo)
-        
         # クリアボタン
         self.clear_filter_button = QPushButton("フィルタークリア")
         self.clear_filter_button.clicked.connect(self.clear_filter)
@@ -138,24 +129,10 @@ class ResultPanel(QWidget):
         self.proxy_model.set_filter_text(text)
         self.update_status()
     
-    def on_type_filter_changed(self, text: str):
-        """APIタイプフィルターが変更された時の処理"""
-        if text == "すべて":
-            self.proxy_model.set_filter_api_type("")
-        elif text == "Type A":
-            self.proxy_model.set_filter_api_type("A")
-        elif text == "Type B":
-            self.proxy_model.set_filter_api_type("B")
-        elif text == "Type C":
-            self.proxy_model.set_filter_api_type("C")
-        self.update_status()
-    
     def clear_filter(self):
         """フィルターをクリアします"""
         self.filter_edit.clear()
-        self.type_combo.setCurrentIndex(0)
         self.proxy_model.set_filter_text("")
-        self.proxy_model.set_filter_api_type("")
         self.update_status()
     
     def on_selection_changed(self):
@@ -201,33 +178,35 @@ class ResultPanel(QWidget):
             lines.append(f"申請者ID: {applicant.get('id', 'N/A')}")
             lines.append(f"申請者名: {applicant.get('name', 'N/A')}")
         
-        # タイプ固有の情報
-        api_type = application.get("api_type", "")
-        if api_type == "A":
-            lines.append(f"金額: {application.get('amount', 'N/A')} {application.get('currency', 'JPY')}")
+        # 一般的なフィールド（APIタイプに関係なく表示）
+        if "amount" in application:
+            currency = application.get("currency", "JPY")
+            lines.append(f"金額: {application.get('amount', 'N/A')} {currency}")
+        
+        if "expenseCategory" in application:
             lines.append(f"経費カテゴリー: {application.get('expenseCategory', 'N/A')}")
-            lines.append("タイプ: 経費申請")
-        elif api_type == "B":
+        
+        if "startDate" in application:
             lines.append(f"開始日: {application.get('startDate', 'N/A')}")
+        
+        if "endDate" in application:
             lines.append(f"終了日: {application.get('endDate', 'N/A')}")
+        
+        if "days" in application:
             lines.append(f"日数: {application.get('days', 'N/A')}日")
-            lines.append("タイプ: 休暇申請")
-        elif api_type == "C":
+        
+        if "requestedRole" in application:
             lines.append(f"要求権限: {application.get('requestedRole', 'N/A')}")
-            
-            # 承認フローの詳細
-            approval_flow = application.get("approvalFlow", [])
-            if isinstance(approval_flow, list) and len(approval_flow) > 0:
-                lines.append("承認フロー:")
-                for i, step in enumerate(approval_flow):
-                    approver = step.get("approver", {})
-                    approver_name = approver.get("name", "N/A") if isinstance(approver, dict) else "N/A"
-                    step_status = step.get("status", "N/A")
-                    lines.append(f"  ステップ {step.get('step', i+1)}: {approver_name} - {step_status}")
-            else:
-                lines.append("承認フロー: なし")
-            
-            lines.append("タイプ: 権限申請")
+        
+        # 承認フローの詳細
+        approval_flow = application.get("approvalFlow", [])
+        if isinstance(approval_flow, list) and len(approval_flow) > 0:
+            lines.append("承認フロー:")
+            for i, step in enumerate(approval_flow):
+                approver = step.get("approver", {})
+                approver_name = approver.get("name", "N/A") if isinstance(approver, dict) else "N/A"
+                step_status = step.get("status", "N/A")
+                lines.append(f"  ステップ {step.get('step', i+1)}: {approver_name} - {step_status}")
         
         return "\n".join(lines)
     
