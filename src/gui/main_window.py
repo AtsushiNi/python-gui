@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QTableView,
     QHeaderView,
-    QLineEdit,
     QComboBox,
 )
 
@@ -97,16 +96,6 @@ class DynamicResultPanel(QWidget):
         layout = QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # フィルターラベル
-        filter_label = QLabel("フィルター:")
-        layout.addWidget(filter_label)
-        
-        # フィルター入力
-        self.filter_edit = QLineEdit()
-        self.filter_edit.setPlaceholderText("検索...")
-        self.filter_edit.textChanged.connect(self.on_filter_changed)
-        layout.addWidget(self.filter_edit)
-        
         # APIフィルター
         self.api_filter_combo = QComboBox()
         self.api_filter_combo.addItem("すべてのAPI", "")
@@ -156,10 +145,6 @@ class DynamicResultPanel(QWidget):
         
         return table_view
     
-    def on_filter_changed(self, text: str):
-        """フィルターが変更された時の処理"""
-        self.proxy_model.set_filter_text(text)
-        self.update_status()
     
     def on_api_filter_changed(self, index: int):
         """APIフィルターが変更された時の処理"""
@@ -172,9 +157,7 @@ class DynamicResultPanel(QWidget):
     
     def clear_filter(self):
         """フィルターをクリアします"""
-        self.filter_edit.clear()
         self.api_filter_combo.setCurrentIndex(0)
-        self.proxy_model.set_filter_text("")
         self.proxy_model.set_filter_api_id("")
         self.update_status()
     

@@ -162,7 +162,6 @@ class DynamicResultSortFilterProxyModel(QSortFilterProxyModel):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.filter_text = ""
         self.filter_api_id = ""  # API IDでフィルター
     
     def filterAcceptsRow(self, source_row: int, _source_parent: QModelIndex) -> bool:
@@ -181,28 +180,7 @@ class DynamicResultSortFilterProxyModel(QSortFilterProxyModel):
             if api_id != self.filter_api_id:
                 return False
         
-        # テキストフィルター
-        if not self.filter_text:
-            return True
-        
-        search_text = self.filter_text.lower()
-        
-        # すべての列のデータを検索
-        for col in range(model.columnCount()):
-            index = model.index(source_row, col)
-            display_data = model.data(index, Qt.DisplayRole)
-            if search_text in str(display_data).lower():
-                return True
-        
-        return False
-    
-    def set_filter_text(self, text: str) -> None:
-        """フィルターテキストを設定します"""
-        if text is None:
-            self.filter_text = ""
-        else:
-            self.filter_text = text.strip().lower()
-        self.invalidateFilter()
+        return True
     
     def set_filter_api_id(self, api_id: str) -> None:
         """API IDフィルターを設定します"""
