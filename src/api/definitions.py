@@ -48,7 +48,6 @@ class ApiFieldDefinition:
     enum_mappings: Optional[List[EnumMapping]] = None
     
     # 選択設定
-    allow_empty: bool = False  # 空の選択を許可するか
     allow_multiple: bool = False  # 複数選択を許可するか
     
     # 表示設定

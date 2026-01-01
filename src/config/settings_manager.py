@@ -186,7 +186,6 @@ class SettingsManager:
                 input_type=input_type,
                 configurable=field_data.get("configurable", True),
                 enum_mappings=enum_mappings,
-                allow_empty=field_data.get("allow_empty", False),
                 allow_multiple=field_data.get("allow_multiple", False),
                 display_in_table=field_data.get("display_in_table", True),
                 display_format=field_data.get("display_format"),
