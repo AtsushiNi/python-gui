@@ -1,6 +1,6 @@
 """
 APIクライアント
-requestsを使用してAPIを実行します
+新しいAPI定義システムに対応
 """
 
 import json
@@ -9,74 +9,103 @@ from typing import Any, Dict, List, Optional, Tuple, Callable
 import requests
 from requests.exceptions import RequestException, Timeout
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from models.api_config import ApiConfig
-from logger import logger
+from src.api.definitions import ApiDefinition, ApiDefinitionManager
+from src.logger import logger
 
 
 class ApiClient:
-    """APIクライアントクラス"""
+    """APIクライアントクラス（新しいAPI定義システム対応）"""
 
     def __init__(self):
         self.session = requests.Session()
         # セッション設定
         self.session.headers.update({
-            "User-Agent": "API Table Viewer/1.0",
+            "User-Agent": "API Table Viewer/2.0",
             "Accept": "application/json",
         })
 
-    def execute_api(self, config: ApiConfig) -> Tuple[bool, Dict[str, Any], Optional[str]]:
+    def execute_api(
+        self, 
+        api_def: ApiDefinition, 
+        body_params: Dict[str, Any] = None
+    ) -> Tuple[bool, Dict[str, Any], Optional[str]]:
         """
         単一のAPIを実行します
 
         Args:
-            config: API設定
+            api_def: API定義
+            body_params: Bodyパラメータ（GUI入力値）
 
         Returns:
             (成功可否, レスポンスデータ, エラーメッセージ)
         """
-        if not config.enabled:
+        if not api_def.enabled:
             return False, {}, "APIが無効です"
 
-        # 設定の検証
-        errors = config.validate()
-        if errors:
-            return False, {}, f"設定エラー: {', '.join(errors)}"
+        # URLの検証
+        if not api_def.url.strip():
+            return False, {}, "URLを入力してください"
+        
+        if not api_def.url.startswith(("http://", "https://")):
+            return False, {}, "URLは http:// または https:// で始まる必要があります"
 
         try:
-            logger.info(f"API実行開始: {config.name} ({config.url})")
+            logger.info(f"API実行開始: {api_def.name} ({api_def.url})")
 
             # リクエストパラメータの準備
             request_kwargs = {
                 "headers": {"Content-Type": "application/json"},
-                "json": config.filter_params or {},
+                "timeout": 30,
             }
+            
+            # Bodyパラメータの構築
+            json_body = {}
+            if body_params:
+                json_body.update(body_params)
+            
+            # デフォルト値の追加
+            for field_def in api_def.body_fields:
+                if field_def.name not in json_body and field_def.default is not None:
+                    json_body[field_def.name] = field_def.default
+            
+            if json_body:
+                request_kwargs["json"] = json_body
 
             # リクエスト実行
             start_time = time.time()
-            response = self.session.post(
-                url=config.url,
-                **request_kwargs
-            )
+            
+            if api_def.method.upper() == "POST":
+                response = self.session.post(
+                    url=api_def.url,
+                    **request_kwargs
+                )
+            elif api_def.method.upper() == "GET":
+                response = self.session.get(
+                    url=api_def.url,
+                    **request_kwargs
+                )
+            else:
+                return False, {}, f"未対応のHTTPメソッド: {api_def.method}"
+                
             elapsed_time = time.time() - start_time
 
-            logger.info(f"API応答: {config.name} - ステータス: {response.status_code}, 時間: {elapsed_time:.2f}s")
+            logger.info(f"API応答: {api_def.name} - ステータス: {response.status_code}, 時間: {elapsed_time:.2f}s")
 
             # レスポンスの処理
             response_data = self._process_response(response)
 
             # 結果の構築
             result = {
-                "api_name": config.name,
-                "url": config.url,
-                "method": "POST",
+                "api_id": api_def.id,
+                "api_name": api_def.name,
+                "api_definition": api_def,
+                "url": api_def.url,
+                "method": api_def.method,
                 "status_code": response.status_code,
                 "response_time": elapsed_time,
                 "success": response.ok,
                 "data": response_data,
+                "request_body": json_body,
                 "headers": dict(response.headers),
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -89,17 +118,17 @@ class ApiClient:
 
         except Timeout:
             error_msg = f"タイムアウト: 30秒経過"
-            logger.warning(f"APIタイムアウト: {config.name}")
+            logger.warning(f"APIタイムアウト: {api_def.name}")
             return False, {}, error_msg
 
         except RequestException as e:
             error_msg = f"リクエストエラー: {str(e)}"
-            logger.error(f"APIリクエストエラー: {config.name} - {e}")
+            logger.error(f"APIリクエストエラー: {api_def.name} - {e}")
             return False, {}, error_msg
 
         except Exception as e:
             error_msg = f"予期せぬエラー: {str(e)}"
-            logger.error(f"API実行エラー: {config.name} - {e}")
+            logger.error(f"API実行エラー: {api_def.name} - {e}")
             return False, {}, error_msg
 
     def _process_response(self, response: requests.Response) -> Any:
@@ -137,36 +166,55 @@ class ApiClient:
 
 
 class ApiExecutor:
-    """API実行を管理するクラス"""
+    """API実行を管理するクラス（新しいAPI定義システム対応）"""
 
     def __init__(self, progress_callback=None):
         self.client = ApiClient()
         self.results: List[Dict[str, Any]] = []
         self.progress_callback = progress_callback
 
-    def execute(self, configs: List[ApiConfig]) -> List[Dict[str, Any]]:
+    def execute(
+        self, 
+        definition_manager: ApiDefinitionManager,
+        api_body_params: Dict[str, Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
         """
         APIを実行し、結果を返します
 
         Args:
-            configs: API設定リスト
+            definition_manager: API定義マネージャー
+            api_body_params: 各APIのBodyパラメータ（API ID -> パラメータ辞書）
 
         Returns:
             実行結果リスト
         """
-        logger.info(f"{len(configs)}個のAPIを実行します")
+        api_definitions = definition_manager.get_enabled_definitions()
+        
+        if not api_definitions:
+            logger.warning("実行可能なAPIがありません")
+            return []
+        
+        logger.info(f"{len(api_definitions)}個のAPIを実行します")
 
         self.results = []
         
-        for i, config in enumerate(configs):
+        for i, api_def in enumerate(api_definitions):
             # 進捗報告
             if self.progress_callback:
-                self.progress_callback(i + 1, len(configs))
+                self.progress_callback(i + 1, len(api_definitions))
+            
+            # Bodyパラメータの取得
+            body_params = {}
+            if api_body_params and api_def.id in api_body_params:
+                body_params = api_body_params[api_def.id]
             
             # API実行
-            success, data, error = self.client.execute_api(config)
+            success, data, error = self.client.execute_api(api_def, body_params)
             
             result = {
+                "api_id": api_def.id,
+                "api_name": api_def.name,
+                "api_definition": api_def,
                 "index": i,
                 "success": success,
                 "data": data,
@@ -176,63 +224,59 @@ class ApiExecutor:
             self.results.append(result)
 
             if success:
-                logger.info(f"API {i+1} 実行成功: {config.name}")
+                logger.info(f"API {i+1} 実行成功: {api_def.name}")
             else:
-                logger.warning(f"API {i+1} 実行失敗: {config.name} - {error}")
+                logger.warning(f"API {i+1} 実行失敗: {api_def.name} - {error}")
 
         logger.info(f"API実行完了: {len([r for r in self.results if r['success']])}/{len(self.results)} 成功")
         return self.results
 
-    def close(self):
-        """リソースを解放します"""
-        self.client.close()
-
-    def extract_applications_data(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def extract_response_data(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        API実行結果からapplicationsデータを抽出します
+        API実行結果からレスポンスデータを抽出します
         
         Args:
             results: API実行結果リスト
             
         Returns:
-            抽出されたapplicationsデータリスト
+            抽出されたレスポンスデータリスト
         """
-        applications = []
+        extracted_data = []
         
         for result in results:
-            if not result.get("success", False):
-                # エラーの場合はエラー情報をapplicationsとして追加
-                error_data = {
-                    "api_type": "error",
-                    "id": f"ERROR-{len(applications)+1:03d}",
-                    "title": "API実行エラー",
-                    "status": "ERROR",
-                    "applicant": {"name": "システム"},
-                    "createdAt": result.get("timestamp", ""),
-                    "error_message": result.get("error", "不明なエラー"),
-                }
-                applications.append(error_data)
+            api_def = result.get("api_definition")
+            if not api_def:
                 continue
             
+            if not result.get("success", False):
+                # エラーの場合はエラー情報を追加
+                error_data = {
+                    "api_id": api_def.id,
+                    "api_name": api_def.name,
+                    "type": "error",
+                    "id": f"ERROR-{len(extracted_data)+1:03d}",
+                    "title": "API実行エラー",
+                    "status": "ERROR",
+                    "error_message": result.get("error", "不明なエラー"),
+                    "timestamp": result.get("timestamp", ""),
+                }
+                extracted_data.append(error_data)
+                continue
+            
+            # レスポンスデータの抽出
             api_result = result.get("data", {})
             response_data = api_result.get("data", {})
+            items_list = response_data.get("applications", [])
             
-            # レスポンスデータからapplicationsを抽出
-            apps_list = []
-            if isinstance(response_data, dict) and "applications" in response_data:
-                apps_list = response_data.get("applications", [])
-            elif isinstance(response_data, list):
-                apps_list = response_data
-            
-            if not isinstance(apps_list, list):
-                apps_list = [apps_list] if apps_list else []
-            
-            # APIタイプを追加（デフォルト値）
-            api_type = "unknown"
-            
-            for app in apps_list:
-                if isinstance(app, dict):
-                    app["api_type"] = api_type
-                    applications.append(app)
+            for item in items_list:
+                if isinstance(item, dict):
+                    # API情報を追加
+                    item["api_id"] = api_def.id
+                    item["api_name"] = api_def.name
+                    extracted_data.append(item)
         
-        return applications
+        return extracted_data
+
+    def close(self):
+        """リソースを解放します"""
+        self.client.close()
