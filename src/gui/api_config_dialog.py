@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QDateEdit,
     QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
 )
 
 from datetime import datetime
@@ -48,11 +50,25 @@ class DynamicFieldWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         if self.field_def.input_type == InputType.DROPDOWN:
-            self.widget = QComboBox()
-            if self.field_def.enum_mappings:
-                for mapping in self.field_def.enum_mappings:
-                    self.widget.addItem(mapping.display_name, mapping.value)
-            self.widget.currentIndexChanged.connect(self._on_value_changed)
+            if self.field_def.allow_multiple:
+                # 複数選択用のリストウィジェット
+                self.widget = QListWidget()
+                self.widget.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+                if self.field_def.enum_mappings:
+                    for mapping in self.field_def.enum_mappings:
+                        item = QListWidgetItem(mapping.display_name)
+                        item.setData(Qt.ItemDataRole.UserRole, mapping.value)
+                        self.widget.addItem(item)
+                self.widget.itemSelectionChanged.connect(self._on_value_changed)
+            else:
+                # 単一選択用のコンボボックス
+                self.widget = QComboBox()
+                # 空の選択を許可
+                self.widget.addItem("（選択なし）", None)
+                if self.field_def.enum_mappings:
+                    for mapping in self.field_def.enum_mappings:
+                        self.widget.addItem(mapping.display_name, mapping.value)
+                self.widget.currentIndexChanged.connect(self._on_value_changed)
             
         elif self.field_def.input_type == InputType.CHECKBOX:
             self.widget = QCheckBox()
@@ -81,7 +97,22 @@ class DynamicFieldWidget(QWidget):
     def get_value(self) -> Any:
         """現在の値を取得"""
         if self.field_def.input_type == InputType.DROPDOWN:
-            return self.widget.currentData()
+            if self.field_def.allow_multiple:
+                # 複数選択の場合：選択された値のリストを返す
+                selected_values = []
+                for i in range(self.widget.count()):
+                    item = self.widget.item(i)
+                    if item.isSelected():
+                        value = item.data(Qt.ItemDataRole.UserRole)
+                        selected_values.append(value)
+                return selected_values
+            else:
+                # 単一選択の場合
+                value = self.widget.currentData()
+                # 空の選択（「（選択なし）」）の場合、Noneを返す
+                if value is None:
+                    return None
+                return value
         elif self.field_def.input_type == InputType.CHECKBOX:
             return self.widget.isChecked()
         elif self.field_def.input_type == InputType.DATEPICKER:
@@ -93,35 +124,69 @@ class DynamicFieldWidget(QWidget):
     
     def set_value(self, value: Any):
         """値を設定"""
-        if value is None:
-            value = self.field_def.default
-        
         try:
             if self.field_def.input_type == InputType.DROPDOWN:
-                if self.field_def.enum_mappings:
-                    for i, mapping in enumerate(self.field_def.enum_mappings):
-                        if str(value) == mapping.value:
-                            self.widget.setCurrentIndex(i)
-                            break
+                if self.field_def.allow_multiple:
+                    # 複数選択の場合：値のリストを受け取る
+                    if value is None:
+                        value = []
+                    elif not isinstance(value, list):
+                        value = [value]
+                    
+                    # すべての選択をクリア
+                    self.widget.clearSelection()
+                    
+                    # 指定された値を選択
+                    if self.field_def.enum_mappings:
+                        value_strs = [str(v) for v in value]
+                        for i in range(self.widget.count()):
+                            item = self.widget.item(i)
+                            item_value = item.data(Qt.ItemDataRole.UserRole)
+                            if str(item_value) in value_strs:
+                                item.setSelected(True)
+                else:
+                    # 単一選択の場合
+                    if self.field_def.enum_mappings:
+                        if value is None:
+                            # 空の選択を設定
+                            self.widget.setCurrentIndex(0)  # 最初のアイテムは「（選択なし）」
+                        else:
+                            for i, mapping in enumerate(self.field_def.enum_mappings):
+                                # 常に空の選択肢があるため、インデックスを1ずらす
+                                if str(value) == mapping.value:
+                                    self.widget.setCurrentIndex(i + 1)  # 0番目は「（選択なし）」
+                                    break
             
             elif self.field_def.input_type == InputType.CHECKBOX:
-                self.widget.setChecked(bool(value))
+                self.widget.setChecked(bool(value) if value is not None else False)
             
             elif self.field_def.input_type == InputType.DATEPICKER:
                 if isinstance(value, str):
                     date = datetime.fromisoformat(value.replace('Z', '+00:00'))
                     self.widget.setDate(date)
+                elif value is None:
+                    # 現在の日付を設定
+                    self.widget.setDate(datetime.now())
             
             elif self.field_def.type == FieldType.NUMBER:
-                self.widget.setValue(float(value) if value else 0)
+                self.widget.setValue(float(value) if value is not None else 0)
             
             else:  # TEXT or default
-                self.widget.setText(str(value) if value else "")
+                self.widget.setText(str(value) if value is not None else "")
         except Exception as e:
             logger.warning(f"フィールド値の設定に失敗: {self.field_def.name}, 値: {value}, エラー: {e}")
             # デフォルト値を設定
             if self.field_def.default is not None:
-                self.set_value(self.field_def.default)
+                # 再帰呼び出しを避けるために直接処理
+                if self.field_def.input_type == InputType.DROPDOWN:
+                    if self.field_def.allow_multiple:
+                        if isinstance(self.field_def.default, list):
+                            value = self.field_def.default
+                        else:
+                            value = [self.field_def.default]
+                    else:
+                        value = self.field_def.default
+                    self.set_value(value)
 
 
 class ApiConfigWidget(QWidget):
@@ -155,14 +220,6 @@ class ApiConfigWidget(QWidget):
         form_layout = QFormLayout()
         form_layout.setLabelAlignment(Qt.AlignRight)
         
-        # URL
-        self.url_edit = QLineEdit(self.api_def.url)
-        self.url_edit.textChanged.connect(self.on_config_changed)
-        form_layout.addRow("URL:", self.url_edit)
-        
-        # メソッド（現状は固定）
-        method_label = QLabel(self.api_def.method)
-        form_layout.addRow("メソッド:", method_label)
         
         group_layout.addLayout(form_layout)
         
@@ -172,8 +229,19 @@ class ApiConfigWidget(QWidget):
             body_layout = QFormLayout(body_group)
             body_layout.setLabelAlignment(Qt.AlignRight)
             
+            # 無効なAPIの場合はスタイルを適用
+            if not self.api_def.enabled:
+                body_group.setStyleSheet("QGroupBox { color: gray; border: 1px solid gray; }")
+            
             for field_def in self.api_def.body_fields:
+                # configurableがFalseのフィールドは表示しない
+                if not field_def.configurable:
+                    continue
+                    
                 label = QLabel(field_def.label)
+                if not self.api_def.enabled:
+                    label.setStyleSheet("color: gray;")
+                
                 field_widget = DynamicFieldWidget(field_def)
                 field_widget.value_changed.connect(self.on_config_changed)
                 self.field_widgets[field_def.name] = field_widget
@@ -194,7 +262,7 @@ class ApiConfigWidget(QWidget):
             id=self.api_def.id,
             name=self.api_def.name,
             enabled=self.enabled_checkbox.isChecked(),
-            url=self.url_edit.text(),
+            url=self.api_def.url,
             method=self.api_def.method,
             body_fields=self.api_def.body_fields.copy(),
             response_fields=self.api_def.response_fields.copy(),
@@ -205,10 +273,19 @@ class ApiConfigWidget(QWidget):
     def get_body_params(self) -> Dict[str, Any]:
         """Bodyパラメータを取得"""
         params = {}
+        
+        # configurableがTrueのフィールド（ウィジェットがあるもの）から値を取得
         for field_name, widget in self.field_widgets.items():
             value = widget.get_value()
             if value is not None:
                 params[field_name] = value
+        
+        # configurableがFalseのフィールドはデフォルト値を追加
+        for field_def in self.api_def.body_fields:
+            if not field_def.configurable and field_def.name not in params:
+                if field_def.default is not None:
+                    params[field_def.name] = field_def.default
+        
         return params
     
     def set_body_params(self, params: Dict[str, Any]):
@@ -268,8 +345,8 @@ class ApiConfigDialog(QDialog):
         content_layout = QVBoxLayout(content_widget)
         content_layout.setSpacing(15)
         
-        # API設定ウィジェットを作成
-        api_definitions = self.definition_manager.get_enabled_definitions()
+        # API設定ウィジェットを作成（有効/無効問わずすべて表示）
+        api_definitions = self.definition_manager.get_all_definitions()
         for api_def in api_definitions:
             api_widget = ApiConfigWidget(api_def)
             api_widget.config_changed.connect(self.on_config_changed)

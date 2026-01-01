@@ -1,6 +1,45 @@
 """
 API定義設定ファイル
 コード修正なしでAPIを増減可能
+
+API_DEFINITIONの設定方法
+
+1. API定義の追加方法
+   - API_DEFINITIONSリストに新しいApi定義を追加します
+   - 各API定義には以下の必須フィールドがあります：
+     * id: APIの一意識別子（英数字とアンダースコア）
+     * name: 表示名
+     * enabled: 有効/無効フラグ
+     * url: APIエンドポイントURL
+     * method: HTTPメソッド（GET/POSTのみサポート）
+     * body_fields: リクエストボディのフィールド定義リスト
+     * response_fields: レスポンスのフィールド定義リスト
+
+2. フィールド定義（ApiFieldDefinition）の設定
+   - name: リクエスト: APIのbodyのキー名, レスポンス: APIレスポンスのキー名
+   - type: フィールドタイプ
+   - label: リクエスト: 設定画面の表示ラベル, レスポンス: 結果表示テーブルの表示フィールド名
+   - enum_mappings: ENUMタイプの場合の値と表示名のマッピング
+   - input_type: (リクエストのみ) 設定画面の入力タイプ
+   - default: (リクエストのみ) デフォルト値
+   - display_in_table: (レスポンスのみ) テーブル表示フラグ
+   - display_format: (レスポンスのみ) 表示フォーマット文字列
+
+3. 使用可能なFieldType
+   - FieldType.STRING: 文字列
+   - FieldType.NUMBER: 数値
+   - FieldType.DATE: 日付
+   - FieldType.ENUM: 列挙型
+
+4. 使用可能なInputType
+   - InputType.TEXT: テキスト入力
+   - InputType.DROPDOWN: ドロップダウン選択
+   - InputType.DATEPICKER: 日付選択
+
+5. 注意事項
+   - API定義を変更した後はアプリケーションを再起動してください
+   - idは一意である必要があります
+   - enabled=FalseにするとAPIは無効化されます
 """
 
 from src.api.definitions import (
@@ -8,8 +47,8 @@ from src.api.definitions import (
 )
 
 
-# サンプルAPI定義
-SAMPLE_API_DEFINITIONS = [
+# API定義
+API_DEFINITIONS = [
     ApiDefinition(
         id="expense_api",
         name="経費申請API",
@@ -29,6 +68,7 @@ SAMPLE_API_DEFINITIONS = [
                     EnumMapping(value="PENDING", display_name="保留中"),
                 ],
                 default="SUBMITTED",
+                allow_multiple=False,  # 単一選択
             ),
             ApiFieldDefinition(
                 name="amount_min",
@@ -36,6 +76,7 @@ SAMPLE_API_DEFINITIONS = [
                 label="最小金額",
                 input_type=InputType.TEXT,
                 default=0,
+                configurable=False,  # 設定画面で表示・編集不可
             ),
             ApiFieldDefinition(
                 name="amount_max",
@@ -43,6 +84,7 @@ SAMPLE_API_DEFINITIONS = [
                 label="最大金額",
                 input_type=InputType.TEXT,
                 default=10000,
+                configurable=True,  # 設定画面で表示・編集可能
             ),
         ],
         response_fields=[
@@ -108,6 +150,7 @@ SAMPLE_API_DEFINITIONS = [
                     EnumMapping(value="REJECTED", display_name="却下"),
                 ],
                 default="SUBMITTED",
+                allow_multiple=True,  # 複数選択を許可
             ),
             ApiFieldDefinition(
                 name="start_date",
@@ -176,7 +219,7 @@ SAMPLE_API_DEFINITIONS = [
     ApiDefinition(
         id="permission_api",
         name="権限申請API",
-        enabled=True,
+        enabled=False,
         url="http://localhost:8001/applications/type-c",
         method="POST",
         body_fields=[
@@ -249,12 +292,12 @@ SAMPLE_API_DEFINITIONS = [
 
 def get_api_definitions() -> list[ApiDefinition]:
     """API定義リストを取得"""
-    return SAMPLE_API_DEFINITIONS.copy()
+    return API_DEFINITIONS.copy()
 
 
 def get_api_definition(api_id: str) -> ApiDefinition | None:
     """指定したIDのAPI定義を取得"""
-    for api_def in SAMPLE_API_DEFINITIONS:
+    for api_def in API_DEFINITIONS:
         if api_def.id == api_id:
             return api_def
     return None

@@ -41,8 +41,15 @@ class ApiFieldDefinition:
     default: Any = None  # デフォルト値
     input_type: InputType = InputType.TEXT  # 入力タイプ
     
+    # 設定画面での表示・編集可否
+    configurable: bool = True  # 設定画面で表示・編集可能か
+    
     # enum/dropdown用
     enum_mappings: Optional[List[EnumMapping]] = None
+    
+    # 選択設定
+    allow_empty: bool = False  # 空の選択を許可するか
+    allow_multiple: bool = False  # 複数選択を許可するか
     
     # 表示設定
     display_in_table: bool = True  # テーブルに表示するか
@@ -53,6 +60,28 @@ class ApiFieldDefinition:
         if value is None:
             return "N/A"
         
+        # 複数選択の場合（値がリスト）
+        if isinstance(value, list):
+            if not value:
+                return "N/A"
+            
+            # enumマッピングがある場合は各値を表示名に変換
+            if self.type == FieldType.ENUM and self.enum_mappings:
+                display_names = []
+                for v in value:
+                    found = False
+                    for mapping in self.enum_mappings:
+                        if str(v) == mapping.value:
+                            display_names.append(mapping.display_name)
+                            found = True
+                            break
+                    if not found:
+                        display_names.append(str(v))
+                return ", ".join(display_names)
+            else:
+                return ", ".join(str(v) for v in value)
+        
+        # 単一値の場合
         # enumマッピングがある場合は表示名に変換
         if self.type == FieldType.ENUM and self.enum_mappings:
             for mapping in self.enum_mappings:
@@ -169,6 +198,10 @@ class ApiDefinitionManager:
     def get_enabled_definitions(self) -> List[ApiDefinition]:
         """有効なAPI定義を取得"""
         return [api for api in self.api_definitions.values() if api.enabled]
+    
+    def get_all_definitions(self) -> List[ApiDefinition]:
+        """すべてのAPI定義を取得（有効/無効問わず）"""
+        return list(self.api_definitions.values())
     
     def get_merged_fields(self) -> List[MergedField]:
         """マージされたテーブル列を取得"""

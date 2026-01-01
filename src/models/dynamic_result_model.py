@@ -87,7 +87,7 @@ class DynamicResultTableModel(QAbstractTableModel):
                     return field_def.get_display_value(value)
                 else:
                     # このAPIでは定義されていないフィールド
-                    return "N/A"
+                    return "-"
             
             elif role == Qt.TextAlignmentRole:
                 field_def = merged_field.get_field_definition(api_id)
