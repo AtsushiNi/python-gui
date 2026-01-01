@@ -1,0 +1,471 @@
+{
+  "api_definitions": [
+    {
+      "id": "expense_api",
+      "name": "経費申請API",
+      "enabled": true,
+      "url": "http://localhost:8001/applications/type-a",
+      "method": "POST",
+      "body_fields": [
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "ステータス",
+          "default": "SUBMITTED",
+          "input_type": "dropdown",
+          "configurable": true,
+          "enum_mappings": [
+            {
+              "value": "SUBMITTED",
+              "display_name": "申請済"
+            },
+            {
+              "value": "APPROVED",
+              "display_name": "承認済"
+            },
+            {
+              "value": "REJECTED",
+              "display_name": "却下"
+            },
+            {
+              "value": "PENDING",
+              "display_name": "保留中"
+            }
+          ],
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "amount_min",
+          "type": "number",
+          "label": "最小金額",
+          "default": 0,
+          "input_type": "text",
+          "configurable": false,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "amount_max",
+          "type": "number",
+          "label": "最大金額",
+          "default": 10000,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        }
+      ],
+      "response_fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "label": "ID",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "label": "タイトル",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "ステータス",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": [
+            {
+              "value": "SUBMITTED",
+              "display_name": "申請済"
+            },
+            {
+              "value": "APPROVED",
+              "display_name": "承認済"
+            },
+            {
+              "value": "REJECTED",
+              "display_name": "却下"
+            }
+          ],
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "label": "金額",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": "{value} JPY"
+        },
+        {
+          "name": "expenseCategory",
+          "type": "string",
+          "label": "経費カテゴリー",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "createdAt",
+          "type": "date",
+          "label": "申請日時",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        }
+      ]
+    },
+    {
+      "id": "vacation_api",
+      "name": "休暇申請API",
+      "enabled": true,
+      "url": "http://localhost:8001/applications/type-b",
+      "method": "POST",
+      "body_fields": [
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "ステータス",
+          "default": "SUBMITTED",
+          "input_type": "dropdown",
+          "configurable": true,
+          "enum_mappings": [
+            {
+              "value": "SUBMITTED",
+              "display_name": "申請済"
+            },
+            {
+              "value": "APPROVED",
+              "display_name": "承認済"
+            },
+            {
+              "value": "REJECTED",
+              "display_name": "却下"
+            }
+          ],
+          "allow_empty": false,
+          "allow_multiple": true,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "label": "開始日",
+          "default": null,
+          "input_type": "datepicker",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "label": "終了日",
+          "default": null,
+          "input_type": "datepicker",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        }
+      ],
+      "response_fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "label": "ID",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "label": "タイトル",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "ステータス",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": [
+            {
+              "value": "SUBMITTED",
+              "display_name": "申請済"
+            },
+            {
+              "value": "APPROVED",
+              "display_name": "承認済"
+            },
+            {
+              "value": "REJECTED",
+              "display_name": "却下"
+            }
+          ],
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "startDate",
+          "type": "date",
+          "label": "開始日",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "endDate",
+          "type": "date",
+          "label": "終了日",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "days",
+          "type": "number",
+          "label": "日数",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": "{value}日"
+        },
+        {
+          "name": "createdAt",
+          "type": "date",
+          "label": "申請日時",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        }
+      ]
+    },
+    {
+      "id": "permission_api",
+      "name": "権限申請API",
+      "enabled": false,
+      "url": "http://localhost:8001/applications/type-c",
+      "method": "POST",
+      "body_fields": [
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "ステータス",
+          "default": "SUBMITTED",
+          "input_type": "dropdown",
+          "configurable": true,
+          "enum_mappings": [
+            {
+              "value": "SUBMITTED",
+              "display_name": "申請済"
+            },
+            {
+              "value": "APPROVED",
+              "display_name": "承認済"
+            },
+            {
+              "value": "REJECTED",
+              "display_name": "却下"
+            }
+          ],
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "requested_role",
+          "type": "string",
+          "label": "要求権限",
+          "default": "editor",
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        }
+      ],
+      "response_fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "label": "ID",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "label": "タイトル",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "ステータス",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": [
+            {
+              "value": "SUBMITTED",
+              "display_name": "申請済"
+            },
+            {
+              "value": "APPROVED",
+              "display_name": "承認済"
+            },
+            {
+              "value": "REJECTED",
+              "display_name": "却下"
+            }
+          ],
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "requestedRole",
+          "type": "string",
+          "label": "要求権限",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        },
+        {
+          "name": "approvalFlow",
+          "type": "string",
+          "label": "承認フロー",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": false,
+          "display_format": null
+        },
+        {
+          "name": "createdAt",
+          "type": "date",
+          "label": "申請日時",
+          "default": null,
+          "input_type": "text",
+          "configurable": true,
+          "enum_mappings": null,
+          "allow_empty": false,
+          "allow_multiple": false,
+          "display_in_table": true,
+          "display_format": null
+        }
+      ]
+    }
+  ],
+  "version": "1.0.0"
+}

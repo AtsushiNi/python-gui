@@ -23,6 +23,7 @@ from src.gui.api_config_dialog import ApiConfigDialog
 from src.api.client import ApiExecutor
 from src.api.definitions import ApiDefinitionManager
 from src.config.apis import get_api_definitions
+from src.config.settings_manager import get_settings_manager
 from src.models.dynamic_result_model import (
     DynamicResultTableModel, DynamicResultSortFilterProxyModel
 )
@@ -278,9 +279,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         logger.info("メインウィンドウを初期化します")
 
-        # 新しいAPI定義システム
-        api_definitions = get_api_definitions()
-        self.definition_manager = ApiDefinitionManager(api_definitions)
+        # 設定の読み込み
+        self.definition_manager = self._load_settings()
         
         self.execution_thread = None
         self.last_results = []  # 最後の実行結果を保存
@@ -335,6 +335,9 @@ class MainWindow(QMainWindow):
             self.result_panel.source_model.definition_manager = self.definition_manager
             self.result_panel.source_model._update_merged_fields()
             self.result_panel.source_model.layoutChanged.emit()
+            
+            # 設定を保存
+            self._save_settings()
         else:
             # Cancelが押された場合
             self.status_bar.showMessage("設定をキャンセルしました", 3000)
@@ -489,25 +492,54 @@ class MainWindow(QMainWindow):
         self.execution_thread = None
 
     @Slot(int, int)
-    def on_progress_updated(self, current: int, total: int) -> None:
-        """進捗状況が更新された時の処理"""
-        self.progress_bar.setMaximum(total)
-        self.progress_bar.setValue(current)
-        self.status_label.setText(f"実行中: {current}/{total}")
-
-    def set_execution_ui_state(self, executing: bool) -> None:
-        """実行中のUI状態を設定します"""
+    def on_progress_updated(self, current: int, total: int):
+        """進捗が更新された時の処理"""
+        if total > 0:
+            progress = int((current / total) * 100)
+            self.progress_bar.setValue(progress)
+            self.status_label.setText(f"実行中: {current}/{total}")
+    
+    def set_execution_ui_state(self, executing: bool):
+        """実行中のUI状態を設定"""
         self.execute_button.setEnabled(not executing)
+        self.settings_button.setEnabled(not executing)
         self.clear_button.setEnabled(not executing)
         self.progress_bar.setVisible(executing)
         
         if executing:
             self.progress_bar.setValue(0)
-            self.status_label.setText("準備中...")
+            self.status_label.setText("実行中...")
         else:
             self.status_label.setText("準備完了")
-
-    def closeEvent(self, event) -> None:
-        """ウィンドウを閉じる時の処理"""
+    
+    def _load_settings(self) -> ApiDefinitionManager:
+        """設定を読み込む"""
+        settings_manager = get_settings_manager()
+        loaded_definitions = settings_manager.load_settings()
+        
+        if loaded_definitions is not None:
+            # 設定ファイルから読み込んだ定義を使用
+            logger.info(f"設定ファイルから {len(loaded_definitions)} 個のAPI定義を読み込みました")
+            return ApiDefinitionManager(loaded_definitions)
+        else:
+            # デフォルトの定義を使用
+            logger.info("設定ファイルがないため、デフォルトのAPI定義を使用します")
+            api_definitions = get_api_definitions()
+            return ApiDefinitionManager(api_definitions)
+    
+    def _save_settings(self):
+        """設定を保存"""
+        try:
+            settings_manager = get_settings_manager()
+            success = settings_manager.save_settings(self.definition_manager)
+            if success:
+                logger.info("設定を保存しました")
+            else:
+                logger.warning("設定の保存に失敗しました")
+        except Exception as e:
+            logger.error(f"設定保存中にエラーが発生しました: {e}")
+    
+    def closeEvent(self, event):
+        """ウィンドウが閉じられる時の処理"""
         logger.info("アプリケーションを終了します")
         event.accept()
