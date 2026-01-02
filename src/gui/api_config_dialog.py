@@ -42,12 +42,17 @@ class DynamicFieldWidget(QWidget):
     def __init__(self, field_def: ApiFieldDefinition, parent=None):
         super().__init__(parent)
         self.field_def = field_def
+        self.enabled_checkbox = None
         self.setup_ui()
     
     def setup_ui(self):
         """UIを設定します"""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.enabled_checkbox = QCheckBox()
+        self.enabled_checkbox.stateChanged.connect(self._on_enabled_checkbox_changed)
+        layout.addWidget(self.enabled_checkbox)
         
         if self.field_def.input_type == InputType.DROPDOWN:
             if self.field_def.allow_multiple:
@@ -89,6 +94,37 @@ class DynamicFieldWidget(QWidget):
             self.widget.textChanged.connect(self._on_value_changed)
         
         layout.addWidget(self.widget)
+        layout.addStretch()
+        
+        # 初期状態でチェックボックスの状態に応じてウィジェットを有効/無効化
+        self._update_widget_enabled_state()
+        
+        # 初期値がNoneの場合はチェックボックスをオフに
+        if self.enabled_checkbox is not None and self.field_def.default is None:
+            self.enabled_checkbox.setChecked(False)
+            self._update_widget_enabled_state()
+        
+        # デフォルト値をウィジェットに設定
+        if self.field_def.default is not None:
+            self.set_value(self.field_def.default)
+    
+    def _on_enabled_checkbox_changed(self, state):
+        """チェックボックスの状態が変更された時の処理"""
+        self._update_widget_enabled_state()
+        self.value_changed.emit()
+    
+    def _update_widget_enabled_state(self):
+        """ウィジェットの有効/無効状態を更新"""
+        if self.enabled_checkbox is not None:
+            # チェックボックスがオフの場合はウィジェットを無効化（フィールドが無効）
+            is_checked = self.enabled_checkbox.isChecked()
+            self.widget.setEnabled(is_checked)
+            
+            # 無効化時のスタイルを適用
+            if not is_checked:
+                self.widget.setStyleSheet("background-color: #f0f0f0; color: #888;")
+            else:
+                self.widget.setStyleSheet("")
     
     def _on_value_changed(self, *args):
         """値が変更された時の処理"""
@@ -96,6 +132,10 @@ class DynamicFieldWidget(QWidget):
     
     def get_value(self) -> Any:
         """現在の値を取得"""
+        # チェックボックスが存在し、チェックがオフの場合はNoneを返す（フィールドが無効）
+        if self.enabled_checkbox is not None and not self.enabled_checkbox.isChecked():
+            return None
+        
         if self.field_def.input_type == InputType.DROPDOWN:
             if self.field_def.allow_multiple:
                 # 複数選択の場合：選択された値のリストを返す
@@ -125,6 +165,33 @@ class DynamicFieldWidget(QWidget):
     def set_value(self, value: Any):
         """値を設定"""
         try:
+            # チェックボックスが存在する場合、値に応じて状態を設定
+            if self.enabled_checkbox is not None:
+                if value is None:
+                    # 値がNoneの場合はチェックボックスをオフに
+                    self.enabled_checkbox.setChecked(False)
+                    self._update_widget_enabled_state()
+                    # ウィジェットは無効化されているので、デフォルト値を設定
+                    if self.field_def.input_type == InputType.DROPDOWN:
+                        if self.field_def.allow_multiple:
+                            self.widget.clearSelection()
+                        else:
+                            if self.field_def.enum_mappings:
+                                self.widget.setCurrentIndex(0)  # 「（選択なし）」を選択
+                    elif self.field_def.input_type == InputType.CHECKBOX:
+                        self.widget.setChecked(False)
+                    elif self.field_def.input_type == InputType.DATEPICKER:
+                        self.widget.setDate(datetime.now())
+                    elif self.field_def.type == FieldType.NUMBER:
+                        self.widget.setValue(0)
+                    else:  # TEXT or default
+                        self.widget.setText("")
+                    return
+                else:
+                    # 値がNoneでない場合はnullチェックボックスをオフに
+                    self.enabled_checkbox.setChecked(False)
+                    self._update_widget_enabled_state()
+            
             if self.field_def.input_type == InputType.DROPDOWN:
                 if self.field_def.allow_multiple:
                     # 複数選択の場合：値のリストを受け取る
@@ -257,6 +324,30 @@ class ApiConfigWidget(QWidget):
     
     def get_api_definition(self) -> ApiDefinition:
         """現在の設定からAPI定義を取得"""
+        # body_fieldsを更新（ユーザーが変更した値をdefaultに反映）
+        updated_body_fields = []
+        for field_def in self.api_def.body_fields:
+            # フィールド定義をコピー
+            updated_field_def = ApiFieldDefinition(
+                name=field_def.name,
+                type=field_def.type,
+                label=field_def.label,
+                default=field_def.default,  # 一時的に元のデフォルト値を保持
+                input_type=field_def.input_type,
+                configurable=field_def.configurable,
+                enum_mappings=field_def.enum_mappings,
+                allow_multiple=field_def.allow_multiple,
+                display_in_table=field_def.display_in_table,
+                display_format=field_def.display_format,
+            )
+            
+            # ユーザーが変更した値を取得してdefaultに設定
+            if field_def.name in self.field_widgets:
+                value = self.field_widgets[field_def.name].get_value()
+                updated_field_def.default = value
+            
+            updated_body_fields.append(updated_field_def)
+        
         # 基本設定を更新
         updated_def = ApiDefinition(
             id=self.api_def.id,
@@ -264,7 +355,7 @@ class ApiConfigWidget(QWidget):
             enabled=self.enabled_checkbox.isChecked(),
             url=self.api_def.url,
             method=self.api_def.method,
-            body_fields=self.api_def.body_fields.copy(),
+            body_fields=updated_body_fields,
             response_fields=self.api_def.response_fields.copy(),
         )
         
