@@ -26,15 +26,13 @@ class ApiClient:
 
     def execute_api(
         self, 
-        api_def: ApiDefinition, 
-        body_params: Dict[str, Any] = None
+        api_def: ApiDefinition
     ) -> Tuple[bool, Dict[str, Any], Optional[str]]:
         """
         単一のAPIを実行します
 
         Args:
             api_def: API定義
-            body_params: Bodyパラメータ（GUI入力値）
 
         Returns:
             (成功可否, レスポンスデータ, エラーメッセージ)
@@ -60,13 +58,14 @@ class ApiClient:
             
             # Bodyパラメータの構築
             json_body = {}
-            if body_params:
-                json_body.update(body_params)
             
-            # デフォルト値の追加
+            # 値の追加
             for field_def in api_def.body_fields:
-                if field_def.name not in json_body and field_def.default is not None:
-                    json_body[field_def.name] = field_def.default
+                if field_def.value is not None:
+                    json_body[field_def.name] = field_def.value
+                else:
+                    # チェックボックスがオフの場合、空文字列を送信
+                    json_body[field_def.name] = ""
             
             if json_body:
                 request_kwargs["json"] = json_body
@@ -175,15 +174,13 @@ class ApiExecutor:
 
     def execute(
         self, 
-        definition_manager: ApiDefinitionManager,
-        api_body_params: Dict[str, Dict[str, Any]] = None
+        definition_manager: ApiDefinitionManager
     ) -> List[Dict[str, Any]]:
         """
         APIを実行し、結果を返します
 
         Args:
             definition_manager: API定義マネージャー
-            api_body_params: 各APIのBodyパラメータ（API ID -> パラメータ辞書）
 
         Returns:
             実行結果リスト
@@ -203,13 +200,8 @@ class ApiExecutor:
             if self.progress_callback:
                 self.progress_callback(i + 1, len(api_definitions))
             
-            # Bodyパラメータの取得
-            body_params = {}
-            if api_body_params and api_def.id in api_body_params:
-                body_params = api_body_params[api_def.id]
-            
             # API実行
-            success, data, error = self.client.execute_api(api_def, body_params)
+            success, data, error = self.client.execute_api(api_def)
             
             result = {
                 "api_id": api_def.id,

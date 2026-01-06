@@ -182,12 +182,11 @@ class SettingsManager:
                 name=field_data["name"],
                 type=field_type,
                 label=field_data["label"],
-                default=field_data.get("default"),
+                value=field_data.get("value"),
                 input_type=input_type,
                 configurable=field_data.get("configurable", True),
                 enum_mappings=enum_mappings,
                 allow_multiple=field_data.get("allow_multiple", False),
-                display_in_table=field_data.get("display_in_table", True),
                 display_format=field_data.get("display_format"),
             )
             

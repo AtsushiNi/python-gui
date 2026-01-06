@@ -21,8 +21,7 @@ API_DEFINITIONの設定方法
    - label: リクエスト: 設定画面の表示ラベル, レスポンス: 結果表示テーブルの表示フィールド名
    - enum_mappings: ENUMタイプの場合の値と表示名のマッピング
    - input_type: (リクエストのみ) 設定画面の入力タイプ
-   - default: (リクエストのみ) デフォルト値
-   - display_in_table: (レスポンスのみ) テーブル表示フラグ
+   - value: (リクエストのみ) 値
    - display_format: (レスポンスのみ) 表示フォーマット文字列
 
 3. 使用可能なFieldType
@@ -67,15 +66,12 @@ API_DEFINITIONS = [
                     EnumMapping(value="REJECTED", display_name="却下"),
                     EnumMapping(value="PENDING", display_name="保留中"),
                 ],
-                default="SUBMITTED",
+                value="SUBMITTED",
                 allow_multiple=False,  # 単一選択
             ),
             ApiFieldDefinition(
                 name="amount_min",
-                type=FieldType.NUMBER,
-                label="最小金額",
-                input_type=InputType.TEXT,
-                default=0,
+                value=0,
                 configurable=False,  # 設定画面で表示・編集不可
             ),
             ApiFieldDefinition(
@@ -83,7 +79,7 @@ API_DEFINITIONS = [
                 type=FieldType.NUMBER,
                 label="最大金額",
                 input_type=InputType.TEXT,
-                default=10000,
+                value=10000,
                 configurable=True,  # 設定画面で表示・編集可能
             ),
         ],
@@ -92,13 +88,11 @@ API_DEFINITIONS = [
                 name="id",
                 type=FieldType.STRING,
                 label="ID",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="title",
                 type=FieldType.STRING,
                 label="タイトル",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="status",
@@ -109,26 +103,22 @@ API_DEFINITIONS = [
                     EnumMapping(value="APPROVED", display_name="承認済"),
                     EnumMapping(value="REJECTED", display_name="却下"),
                 ],
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="amount",
                 type=FieldType.NUMBER,
                 label="金額",
                 display_format="{value} JPY",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="expenseCategory",
                 type=FieldType.STRING,
                 label="経費カテゴリー",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="createdAt",
                 type=FieldType.DATE,
                 label="申請日時",
-                display_in_table=True,
             ),
         ],
     ),
@@ -149,7 +139,7 @@ API_DEFINITIONS = [
                     EnumMapping(value="APPROVED", display_name="承認済"),
                     EnumMapping(value="REJECTED", display_name="却下"),
                 ],
-                default="SUBMITTED",
+                value="SUBMITTED",
                 allow_multiple=True,  # 複数選択を許可
             ),
             ApiFieldDefinition(
@@ -170,13 +160,11 @@ API_DEFINITIONS = [
                 name="id",
                 type=FieldType.STRING,
                 label="ID",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="title",
                 type=FieldType.STRING,
                 label="タイトル",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="status",
@@ -187,32 +175,27 @@ API_DEFINITIONS = [
                     EnumMapping(value="APPROVED", display_name="承認済"),
                     EnumMapping(value="REJECTED", display_name="却下"),
                 ],
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="startDate",
                 type=FieldType.DATE,
                 label="開始日",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="endDate",
                 type=FieldType.DATE,
                 label="終了日",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="days",
                 type=FieldType.NUMBER,
                 label="日数",
                 display_format="{value}日",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="createdAt",
                 type=FieldType.DATE,
                 label="申請日時",
-                display_in_table=True,
             ),
         ],
     ),
@@ -233,14 +216,14 @@ API_DEFINITIONS = [
                     EnumMapping(value="APPROVED", display_name="承認済"),
                     EnumMapping(value="REJECTED", display_name="却下"),
                 ],
-                default="SUBMITTED",
+                value="SUBMITTED",
             ),
             ApiFieldDefinition(
                 name="requested_role",
                 type=FieldType.STRING,
                 label="要求権限",
                 input_type=InputType.TEXT,
-                default="editor",
+                value="editor",
             ),
         ],
         response_fields=[
@@ -248,13 +231,11 @@ API_DEFINITIONS = [
                 name="id",
                 type=FieldType.STRING,
                 label="ID",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="title",
                 type=FieldType.STRING,
                 label="タイトル",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="status",
@@ -265,25 +246,21 @@ API_DEFINITIONS = [
                     EnumMapping(value="APPROVED", display_name="承認済"),
                     EnumMapping(value="REJECTED", display_name="却下"),
                 ],
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="requestedRole",
                 type=FieldType.STRING,
                 label="要求権限",
-                display_in_table=True,
             ),
             ApiFieldDefinition(
                 name="approvalFlow",
                 type=FieldType.STRING,
                 label="承認フロー",
-                display_in_table=False,  # テーブルには表示しない（詳細表示のみ）
             ),
             ApiFieldDefinition(
                 name="createdAt",
                 type=FieldType.DATE,
                 label="申請日時",
-                display_in_table=True,
             ),
         ],
     ),

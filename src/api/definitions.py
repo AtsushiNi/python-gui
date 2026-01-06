@@ -36,9 +36,9 @@ class EnumMapping:
 class ApiFieldDefinition:
     """APIフィールド定義"""
     name: str  # APIのフィールド名
-    type: FieldType  # フィールドタイプ
-    label: str  # GUI表示用ラベル（マージキー）
-    default: Any = None  # デフォルト値
+    type: FieldType = FieldType.STRING  # フィールドタイプ（デフォルト: STRING）
+    label: str = ""  # GUI表示用ラベル（マージキー、デフォルト: 空文字列）
+    value: Any = None  # 値
     input_type: InputType = InputType.TEXT  # 入力タイプ
     
     # 設定画面での表示・編集可否
@@ -51,7 +51,6 @@ class ApiFieldDefinition:
     allow_multiple: bool = False  # 複数選択を許可するか
     
     # 表示設定
-    display_in_table: bool = True  # テーブルに表示するか
     display_format: Optional[str] = None  # 表示フォーマット（例: "{value} JPY"）
     
     def get_display_value(self, value: Any) -> str:
@@ -113,19 +112,6 @@ class ApiDefinition:
     # レスポンス表示定義
     response_fields: List[ApiFieldDefinition] = field(default_factory=list)
     
-    def get_body_field(self, name: str) -> Optional[ApiFieldDefinition]:
-        """bodyフィールドを名前で取得"""
-        for field in self.body_fields:
-            if field.name == name:
-                return field
-        return None
-    
-    def get_response_field(self, name: str) -> Optional[ApiFieldDefinition]:
-        """レスポンスフィールドを名前で取得"""
-        for field in self.response_fields:
-            if field.name == name:
-                return field
-        return None
 
 
 @dataclass
@@ -164,15 +150,14 @@ def merge_api_definitions_by_label(api_definitions: List[ApiDefinition]) -> List
     
     for api_def in api_definitions:
         for field in api_def.response_fields:
-            if field.display_in_table:
-                if field.label not in merged_fields:
-                    merged_fields[field.label] = MergedField(
-                        label=field.label,
-                        display_order=len(merged_fields),
-                        api_field_mappings={api_def.id: field}
-                    )
-                else:
-                    merged_fields[field.label].api_field_mappings[api_def.id] = field
+            if field.label not in merged_fields:
+                merged_fields[field.label] = MergedField(
+                    label=field.label,
+                    display_order=len(merged_fields),
+                    api_field_mappings={api_def.id: field}
+                )
+            else:
+                merged_fields[field.label].api_field_mappings[api_def.id] = field
     
     # 表示順序でソート
     return sorted(merged_fields.values(), key=lambda x: x.display_order)

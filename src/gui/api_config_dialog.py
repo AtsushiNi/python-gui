@@ -99,14 +99,14 @@ class DynamicFieldWidget(QWidget):
         # 初期状態でチェックボックスの状態に応じてウィジェットを有効/無効化
         self._update_widget_enabled_state()
         
-        # 初期値がNoneの場合はチェックボックスをオフに
-        if self.enabled_checkbox is not None and self.field_def.default is None:
+        # 値がNoneの場合はチェックボックスをオフに
+        if self.enabled_checkbox is not None and self.field_def.value is None:
             self.enabled_checkbox.setChecked(False)
             self._update_widget_enabled_state()
         
-        # デフォルト値をウィジェットに設定
-        if self.field_def.default is not None:
-            self.set_value(self.field_def.default)
+        # 値をウィジェットに設定
+        if self.field_def.value is not None:
+            self.set_value(self.field_def.value)
     
     def _on_enabled_checkbox_changed(self, state):
         """チェックボックスの状態が変更された時の処理"""
@@ -242,17 +242,17 @@ class DynamicFieldWidget(QWidget):
                 self.widget.setText(str(value) if value is not None else "")
         except Exception as e:
             logger.warning(f"フィールド値の設定に失敗: {self.field_def.name}, 値: {value}, エラー: {e}")
-            # デフォルト値を設定
-            if self.field_def.default is not None:
+            # 値を設定
+            if self.field_def.value is not None:
                 # 再帰呼び出しを避けるために直接処理
                 if self.field_def.input_type == InputType.DROPDOWN:
                     if self.field_def.allow_multiple:
-                        if isinstance(self.field_def.default, list):
-                            value = self.field_def.default
+                        if isinstance(self.field_def.value, list):
+                            value = self.field_def.value
                         else:
-                            value = [self.field_def.default]
+                            value = [self.field_def.value]
                     else:
-                        value = self.field_def.default
+                        value = self.field_def.value
                     self.set_value(value)
 
 
@@ -332,19 +332,18 @@ class ApiConfigWidget(QWidget):
                 name=field_def.name,
                 type=field_def.type,
                 label=field_def.label,
-                default=field_def.default,  # 一時的に元のデフォルト値を保持
+                value=field_def.value,  # 一時的に元の値を保持
                 input_type=field_def.input_type,
                 configurable=field_def.configurable,
                 enum_mappings=field_def.enum_mappings,
                 allow_multiple=field_def.allow_multiple,
-                display_in_table=field_def.display_in_table,
                 display_format=field_def.display_format,
             )
             
-            # ユーザーが変更した値を取得してdefaultに設定
+            # ユーザーが変更した値を取得してvalueに設定
             if field_def.name in self.field_widgets:
                 value = self.field_widgets[field_def.name].get_value()
-                updated_field_def.default = value
+                updated_field_def.value = value
             
             updated_body_fields.append(updated_field_def)
         
@@ -361,29 +360,6 @@ class ApiConfigWidget(QWidget):
         
         return updated_def
     
-    def get_body_params(self) -> Dict[str, Any]:
-        """Bodyパラメータを取得"""
-        params = {}
-        
-        # configurableがTrueのフィールド（ウィジェットがあるもの）から値を取得
-        for field_name, widget in self.field_widgets.items():
-            value = widget.get_value()
-            if value is not None:
-                params[field_name] = value
-        
-        # configurableがFalseのフィールドはデフォルト値を追加
-        for field_def in self.api_def.body_fields:
-            if not field_def.configurable and field_def.name not in params:
-                if field_def.default is not None:
-                    params[field_def.name] = field_def.default
-        
-        return params
-    
-    def set_body_params(self, params: Dict[str, Any]):
-        """Bodyパラメータを設定"""
-        for field_name, value in params.items():
-            if field_name in self.field_widgets:
-                self.field_widgets[field_name].set_value(value)
 
 
 class ApiConfigDialog(QDialog):

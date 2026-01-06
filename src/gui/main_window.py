@@ -36,10 +36,9 @@ class ApiExecutionThread(QThread):
     execution_error = Signal(str)
     progress_updated = Signal(int, int)  # 現在, 合計
     
-    def __init__(self, definition_manager: ApiDefinitionManager, api_body_params: dict = None):
+    def __init__(self, definition_manager: ApiDefinitionManager):
         super().__init__()
         self.definition_manager = definition_manager
-        self.api_body_params = api_body_params or {}
         self.executor = ApiExecutor(self.on_progress)
     
     def on_progress(self, current, total):
@@ -48,7 +47,7 @@ class ApiExecutionThread(QThread):
     
     def run(self):
         try:
-            results = self.executor.execute(self.definition_manager, self.api_body_params)
+            results = self.executor.execute(self.definition_manager)
             self.execution_finished.emit(results)
         except Exception as e:
             self.execution_error.emit(str(e))
@@ -267,7 +266,6 @@ class MainWindow(QMainWindow):
         
         self.execution_thread = None
         self.last_results = []  # 最後の実行結果を保存
-        self.api_body_params = {}  # 各APIのBodyパラメータ
         
         self.setup_ui()
         self.setup_connections()
@@ -414,7 +412,7 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(f"{len(enabled_defs)}個のAPIを実行中...")
         
         # スレッドで実行
-        self.execution_thread = ApiExecutionThread(self.definition_manager, self.api_body_params)
+        self.execution_thread = ApiExecutionThread(self.definition_manager)
         self.execution_thread.execution_finished.connect(self.on_execution_finished)
         self.execution_thread.execution_error.connect(self.on_execution_error)
         self.execution_thread.progress_updated.connect(self.on_progress_updated)
