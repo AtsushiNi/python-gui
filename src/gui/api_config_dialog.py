@@ -3,7 +3,7 @@ API設定ダイアログ
 動的フォーム生成によるAPI設定管理
 """
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QDate
 from PySide6.QtWidgets import (
     QDialog,
     QWidget,
@@ -95,16 +95,16 @@ class DynamicFieldWidget(QWidget):
         
         layout.addWidget(self.widget)
         layout.addStretch()
-        
-        # 初期状態でチェックボックスの状態に応じてウィジェットを有効/無効化
+
+        # 初期状態：値がある場合は「フィールド有効」とみなしチェックをON
+        # 値がNoneの場合は「フィールド無効」とみなしチェックをOFF
+        if self.enabled_checkbox is not None:
+            self.enabled_checkbox.setChecked(self.field_def.value is not None)
+
+        # チェックボックスの状態に応じてウィジェットを有効/無効化
         self._update_widget_enabled_state()
-        
-        # 値がNoneの場合はチェックボックスをオフに
-        if self.enabled_checkbox is not None and self.field_def.value is None:
-            self.enabled_checkbox.setChecked(False)
-            self._update_widget_enabled_state()
-        
-        # 値をウィジェットに設定
+
+        # 値をウィジェットに設定（値があるときのみ）
         if self.field_def.value is not None:
             self.set_value(self.field_def.value)
     
@@ -181,15 +181,15 @@ class DynamicFieldWidget(QWidget):
                     elif self.field_def.input_type == InputType.CHECKBOX:
                         self.widget.setChecked(False)
                     elif self.field_def.input_type == InputType.DATEPICKER:
-                        self.widget.setDate(datetime.now())
+                        self.widget.setDate(QDate.currentDate())
                     elif self.field_def.type == FieldType.NUMBER:
                         self.widget.setValue(0)
                     else:  # TEXT or default
                         self.widget.setText("")
                     return
                 else:
-                    # 値がNoneでない場合はnullチェックボックスをオフに
-                    self.enabled_checkbox.setChecked(False)
+                    # 値がある場合はフィールド有効としてチェックをON
+                    self.enabled_checkbox.setChecked(True)
                     self._update_widget_enabled_state()
             
             if self.field_def.input_type == InputType.DROPDOWN:
@@ -230,10 +230,10 @@ class DynamicFieldWidget(QWidget):
             elif self.field_def.input_type == InputType.DATEPICKER:
                 if isinstance(value, str):
                     date = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    self.widget.setDate(date)
+                    self.widget.setDate(QDate(date.year, date.month, date.day))
                 elif value is None:
                     # 現在の日付を設定
-                    self.widget.setDate(datetime.now())
+                    self.widget.setDate(QDate.currentDate())
             
             elif self.field_def.type == FieldType.NUMBER:
                 self.widget.setValue(float(value) if value is not None else 0)
