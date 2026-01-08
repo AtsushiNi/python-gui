@@ -3,14 +3,19 @@ API Table Viewer - メインエントリーポイント
 """
 
 import sys
+import os
 from pathlib import Path
+
+# プロジェクトのルートディレクトリをPythonパスに追加
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 # PySide6のインポート
 from PySide6.QtWidgets import QApplication
 
 # プロジェクトモジュールのインポート
-from gui.main_window import MainWindow
-from logger import logger
+from src.gui.main_window import MainWindow
+from src.logger import logger
 
 
 def main() -> None:

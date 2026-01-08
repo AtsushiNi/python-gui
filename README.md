@@ -12,28 +12,6 @@
 - **エクスポート機能**: 実行結果のエクスポート（CSV予定）
 - **クロスプラットフォーム**: Windows, macOS, Linuxで動作
 
-## スクリーンショット
-
-```
-+----------------------------------------------------------+
-| API Table Viewer                                         |
-+---------------------------+------------------------------+
-| [API設定パネル]           | [結果表示パネル]            |
-|                           |                              |
-| API 1: [✓] 有効           | +--------------------------+ |
-| 名前: [API 1]             | | API名 | ステータス | ... | |
-| URL: [https://...]        | +--------------------------+ |
-| メソッド: [GET]           | | API 1 | 成功      | ... | |
-| タイムアウト: [30]秒      | | API 2 | 失敗      | ... | |
-| [テスト]                  | +--------------------------+ |
-|                           |                              |
-| API 2: [✓] 有効           | [フィルター: _____]         |
-| ...                       | [詳細表示] [エクスポート]   |
-+---------------------------+------------------------------+
-| [APIを実行] [結果をクリア]                              |
-+----------------------------------------------------------+
-```
-
 ## インストール方法
 
 ### 前提条件
@@ -66,7 +44,7 @@ uv run python src/main.py
 
 ### 1. APIの設定
 
-1. 左側のAPI設定パネルで、最大6つのAPIを設定します
+1. API設定ダイアログで、最大6つのAPIを設定します
 2. 各APIについて以下の項目を設定:
    - **有効/無効**: チェックボックスで切り替え
    - **名前**: APIの表示名
@@ -102,16 +80,19 @@ api-table-viewer/
 │   │   ├── applications_table_model.py # アプリケーションテーブルモデル
 │   │   └── table_model.py      # テーブルデータモデル
 │   ├── api/
-│   │   └── client.py           # APIクライアント実装
+│   │   ├── client.py           # APIクライアント実装
+│   │   └── flexible_types.py   # 柔軟なAPIタイプシステム
 │   ├── gui/
 │   │   ├── main_window.py      # メインウィンドウ
-│   │   ├── api_panel.py        # API設定パネル
-│   │   └── result_panel.py     # 結果表示パネル
+│   │   ├── api_config_dialog.py       # API設定ダイアログ
+│   │   ├── result_panel.py     # 結果表示パネル
+│   │   └── api_result_dialog.py # API実行結果ダイアログ
 │   └── mock_server/
 │       ├── __init__.py         # モックサーバーパッケージ
 │       └── main.py             # モックサーバー実装
-├── requirements.in             # 依存関係定義
-├── pyproject.toml             # プロジェクト設定
+├── .gitignore                  # Git除外ファイル設定
+├── pyproject.toml             # プロジェクト設定と依存関係
+├── uv.lock                    # uvロックファイル
 ├── run_mock_server.py         # モックサーバー起動スクリプト
 ├── api_table_viewer.spec      # PyInstaller設定
 └── README.md                  # このファイル
@@ -180,7 +161,7 @@ uv run python run_mock_server.py
 
 GUIアプリケーションでAPI設定を変更してローカルサーバーを指すようにします：
 
-1. API設定パネルを開く
+1. API設定ダイアログを開く
 2. 各APIのURLを以下のように変更：
    - Type A: `http://localhost:8001/applications/type-a`
    - Type B: `http://localhost:8001/applications/type-b`

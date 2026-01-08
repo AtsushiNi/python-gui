@@ -58,3 +58,4 @@ logs/
 resources/config.json
 *.db
 *.sqlite3
+api_settings.json
