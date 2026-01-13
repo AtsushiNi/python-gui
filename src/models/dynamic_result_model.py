@@ -189,39 +189,105 @@ class DynamicResultSortFilterProxyModel(QSortFilterProxyModel):
         else:
             self.filter_api_id = api_id.strip()
         self.invalidateFilter()
+
+    def _get_field_type_for_column(self, column: int) -> Optional[FieldType]:
+        """proxyの列番号からFieldTypeを取得します。
+
+        0列目はAPI名列のため型はNone。
+        それ以外はsource modelのmerged_fieldsから型を参照します。
+        """
+        source_model = self.sourceModel()
+        if not isinstance(source_model, DynamicResultTableModel):
+            return None
+
+        if column <= 0:
+            return None
+
+        merged_field_idx = column - 1
+        if 0 <= merged_field_idx < len(source_model.merged_fields):
+            return source_model.merged_fields[merged_field_idx].field_type
+        return None
+
+    @staticmethod
+    def _try_parse_datetime(value: Any):
+        """値をdatetimeへパースします。失敗時はNone。"""
+        if value is None:
+            return None
+
+        from datetime import datetime
+
+        # すでにdatetimeの場合
+        if isinstance(value, datetime):
+            return value
+
+        s = str(value).strip()
+        if not s or s in {"-", "N/A"}:
+            return None
+
+        # Z 付きISOをfromisoformatで扱えるように補正
+        s = s.replace("Z", "+00:00")
+
+        # まずISO形式を試す
+        try:
+            return datetime.fromisoformat(s)
+        except ValueError:
+            pass
+
+        # よくあるフォーマットもフォールバック
+        for fmt in (
+            "%Y/%m/%d %H:%M:%S",
+            "%Y/%m/%d",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+        ):
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                continue
+
+        return None
     
     def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
         """ソート用の比較関数"""
-        left_data = self.sourceModel().data(left, Qt.DisplayRole)
-        right_data = self.sourceModel().data(right, Qt.DisplayRole)
-        
-        # 数値として比較できる場合は数値比較
-        try:
-            # 数値部分を抽出（例: "1280 JPY" → 1280）
-            import re
-            left_str = str(left_data) if left_data else ""
-            right_str = str(right_data) if right_data else ""
-            
-            left_num_match = re.search(r'(\d+\.?\d*)', left_str)
-            right_num_match = re.search(r'(\d+\.?\d*)', right_str)
-            
-            if left_num_match and right_num_match:
-                left_num = float(left_num_match.group(1))
-                right_num = float(right_num_match.group(1))
-                return left_num < right_num
-        except (ValueError, TypeError, AttributeError):
-            pass
-        
-        # 日付として比較できる場合は日付比較
-        try:
-            from datetime import datetime
-            left_date = datetime.fromisoformat(str(left_data).replace('Z', '+00:00'))
-            right_date = datetime.fromisoformat(str(right_data).replace('Z', '+00:00'))
-            return left_date < right_date
-        except (ValueError, TypeError):
-            pass
-        
-        # 文字列として比較
-        left_str = str(left_data) if left_data else ""
-        right_str = str(right_data) if right_data else ""
+        source_model = self.sourceModel()
+        left_data = source_model.data(left, Qt.DisplayRole)
+        right_data = source_model.data(right, Qt.DisplayRole)
+
+        # 列の型に応じて比較（重要: DATE列を数値比較に誤判定させない）
+        field_type = self._get_field_type_for_column(left.column())
+
+        # DATE
+        if field_type == FieldType.DATE:
+            left_dt = self._try_parse_datetime(left_data)
+            right_dt = self._try_parse_datetime(right_data)
+
+            # パースできない値は末尾に寄せる
+            if left_dt is None and right_dt is None:
+                return False
+            if left_dt is None:
+                return False
+            if right_dt is None:
+                return True
+
+            return left_dt < right_dt
+
+        # NUMBER
+        if field_type == FieldType.NUMBER:
+            try:
+                import re
+
+                left_str = str(left_data) if left_data is not None else ""
+                right_str = str(right_data) if right_data is not None else ""
+
+                left_num_match = re.search(r"(-?\d+(?:\.\d+)?)", left_str)
+                right_num_match = re.search(r"(-?\d+(?:\.\d+)?)", right_str)
+
+                if left_num_match and right_num_match:
+                    return float(left_num_match.group(1)) < float(right_num_match.group(1))
+            except (ValueError, TypeError):
+                pass
+
+        # それ以外は従来通り文字列比較
+        left_str = str(left_data) if left_data is not None else ""
+        right_str = str(right_data) if right_data is not None else ""
         return left_str < right_str
